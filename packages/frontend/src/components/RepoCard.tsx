@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, GitBranch, RefreshCw, XCircle, Loader2, ChevronRight, Shield } from 'lucide-react';
+import { Clock, GitBranch, RefreshCw, XCircle, Loader2, ChevronRight, Shield, Timer } from 'lucide-react';
 import { useRecheckRepo, useDeleteRepo } from '../hooks/useApi';
 import type { Repository } from '../lib/api';
 
@@ -11,6 +12,7 @@ export default function RepoCard({ repo }: RepoCardProps) {
   const navigate = useNavigate();
   const recheckMutation = useRecheckRepo();
   const deleteMutation = useDeleteRepo();
+  const [elapsedTime, setElapsedTime] = useState('');
 
   const handleRecheck = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -25,6 +27,35 @@ export default function RepoCard({ repo }: RepoCardProps) {
   };
 
   const isAnalyzing = repo.status === 'pending' || repo.status === 'cloning' || repo.status === 'analyzing';
+
+  // Track elapsed time during analysis
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setElapsedTime('');
+      return;
+    }
+
+    const startTime = new Date(repo.updatedAt).getTime();
+
+    const updateElapsed = () => {
+      const now = Date.now();
+      const diffMs = now - startTime;
+      const diffSecs = Math.floor(diffMs / 1000);
+      const mins = Math.floor(diffSecs / 60);
+      const secs = diffSecs % 60;
+
+      if (mins > 0) {
+        setElapsedTime(`${mins}m ${secs}s`);
+      } else {
+        setElapsedTime(`${secs}s`);
+      }
+    };
+
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 1000);
+
+    return () => clearInterval(interval);
+  }, [isAnalyzing, repo.updatedAt]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Never';
@@ -101,10 +132,16 @@ export default function RepoCard({ repo }: RepoCardProps) {
 
           {/* Status / Issues */}
           {isAnalyzing ? (
-            <div className="flex items-center gap-2 text-emerald-600">
+            <div className="flex items-center justify-between text-emerald-600">
               <span className="text-sm font-medium">
                 {repo.status === 'pending' ? 'Queued for analysis...' : repo.status === 'cloning' ? 'Cloning repository...' : 'Running AI analysis...'}
               </span>
+              {elapsedTime && (
+                <span className="flex items-center gap-1 text-xs text-gray-500 font-mono">
+                  <Timer className="w-3 h-3" />
+                  {elapsedTime}
+                </span>
+              )}
             </div>
           ) : repo.status === 'completed' ? (
             totalIssues > 0 ? (
