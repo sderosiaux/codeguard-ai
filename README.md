@@ -180,6 +180,22 @@ codeguard-ai/
 
 ## Roadmap
 
+- [ ] **CodeGuard CLI** — Run analysis from terminal (`npx codeguard scan .`)
+  ```bash
+  $ codeguard scan ./my-project
+
+  ✓ Scanning 142 files...
+  ✓ Analysis complete
+
+  CRITICAL  2 issues
+  HIGH      5 issues
+  MEDIUM    12 issues
+
+  src/auth/login.ts:42     CRITICAL  SQL injection vulnerability
+  src/api/users.ts:128     CRITICAL  Hardcoded API key detected
+  src/utils/crypto.ts:15   HIGH      Weak encryption algorithm
+  ...
+  ```
 - [ ] GitHub App integration for automatic PR scanning
 - [ ] CI/CD pipeline integration (GitHub Actions, GitLab CI)
 - [ ] Custom rule configuration
