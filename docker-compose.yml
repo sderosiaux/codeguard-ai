@@ -1,5 +1,7 @@
 version: '3.8'
 
+# Local development / testing only
+# Production uses Neon PostgreSQL
 services:
   postgres:
     image: postgres:16-alpine
