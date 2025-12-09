@@ -14,9 +14,14 @@ export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
   const [error, setError] = useState('');
   const createMutation = useCreateRepo();
 
-  const validateGithubUrl = (url: string) => {
-    const githubPattern = /^https:\/\/github\.com\/[\w-]+\/[\w.-]+\/?$/;
-    return githubPattern.test(url);
+  const validateInput = (input: string) => {
+    const trimmed = input.trim();
+    // Full URL format
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed.includes('github.com');
+    }
+    // Shorthand format: owner/repo
+    return /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(trimmed);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,12 +29,12 @@ export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
     setError('');
 
     if (!githubUrl.trim()) {
-      setError('Please enter a GitHub URL');
+      setError('Please enter a repository');
       return;
     }
 
-    if (!validateGithubUrl(githubUrl)) {
-      setError('Please enter a valid GitHub repository URL (e.g., https://github.com/owner/repo)');
+    if (!validateInput(githubUrl)) {
+      setError('Use owner/repo format (e.g., facebook/react) or full GitHub URL');
       return;
     }
 
@@ -56,7 +61,7 @@ export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
             htmlFor="github-url"
             className="block text-sm font-medium text-gray-700 mb-2"
           >
-            GitHub Repository URL
+            GitHub Repository
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -67,7 +72,7 @@ export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
               type="text"
               value={githubUrl}
               onChange={(e) => setGithubUrl(e.target.value)}
-              placeholder="https://github.com/owner/repo"
+              placeholder="owner/repo or https://github.com/owner/repo"
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:bg-white transition-all duration-200"
             />
           </div>

@@ -11,11 +11,29 @@ const router = Router();
 
 // Validation schemas
 const addRepoSchema = z.object({
-  githubUrl: z.string().url().refine(
-    (url) => url.includes('github.com'),
-    { message: 'Must be a GitHub URL' }
-  ),
+  githubUrl: z.string().min(1),
 });
+
+// Normalize input to full GitHub URL
+function normalizeGitHubUrl(input: string): string {
+  const trimmed = input.trim();
+
+  // Already a full URL
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (!trimmed.includes('github.com')) {
+      throw new Error('Must be a GitHub URL');
+    }
+    return trimmed;
+  }
+
+  // Shorthand format: owner/repo
+  const shorthandMatch = trimmed.match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
+  if (shorthandMatch) {
+    return `https://github.com/${shorthandMatch[1]}/${shorthandMatch[2]}`;
+  }
+
+  throw new Error('Invalid format. Use "owner/repo" or full GitHub URL');
+}
 
 // Helper to extract owner and name from GitHub URL
 function parseGitHubUrl(url: string): { owner: string; name: string } {
@@ -73,13 +91,14 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const body = addRepoSchema.parse(req.body);
-    const { owner, name } = parseGitHubUrl(body.githubUrl);
+    const githubUrl = normalizeGitHubUrl(body.githubUrl);
+    const { owner, name } = parseGitHubUrl(githubUrl);
 
     // Check if repo already exists
     const existing = await db
       .select()
       .from(repositories)
-      .where(eq(repositories.githubUrl, body.githubUrl))
+      .where(eq(repositories.githubUrl, githubUrl))
       .limit(1);
 
     if (existing.length > 0) {
@@ -90,7 +109,7 @@ router.post('/', async (req, res, next) => {
     const [repo] = await db
       .insert(repositories)
       .values({
-        githubUrl: body.githubUrl,
+        githubUrl,
         name,
         owner,
         status: 'pending',
@@ -98,7 +117,7 @@ router.post('/', async (req, res, next) => {
       .returning();
 
     // Start background process to clone and analyze
-    processRepository(repo.id, body.githubUrl, owner, name).catch((err) => {
+    processRepository(repo.id, githubUrl, owner, name).catch((err) => {
       console.error(`Background processing failed for repo ${repo.id}:`, err);
     });
 
