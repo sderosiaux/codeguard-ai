@@ -32,6 +32,7 @@ export default function CodeEditor({
   const decorationsRef = useRef<string[]>([]);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isHoveringCardRef = useRef<boolean>(false);
+  const hoveredIssueIdRef = useRef<string | number | null>(null);
 
   // State for custom hover card
   const [hoveredIssue, setHoveredIssue] = useState<Issue | null>(null);
@@ -217,6 +218,7 @@ export default function CodeEditor({
             e.target.type === monaco.editor.MouseTargetType.GUTTER_LINE_DECORATIONS) {
           const issue = findIssueAtLine(line);
           if (issue) {
+            hoveredIssueIdRef.current = null;
             setHoveredIssue(null); // Hide hover card
             onSelectIssue(issue);
           }
@@ -238,19 +240,19 @@ export default function CodeEditor({
         if (issue) {
           // Only update position if it's a different issue
           // This prevents the popup from jumping when moving within multi-line issues
-          setHoveredIssue((prevIssue) => {
-            if (prevIssue?.id !== issue.id) {
-              setHoverPosition({
-                x: e.event.posx,
-                y: e.event.posy,
-              });
-            }
-            return issue;
-          });
+          if (hoveredIssueIdRef.current !== issue.id) {
+            hoveredIssueIdRef.current = issue.id;
+            setHoverPosition({
+              x: e.event.posx,
+              y: e.event.posy,
+            });
+            setHoveredIssue(issue);
+          }
         } else {
           // Hide if not on an issue line (with delay to allow moving to card)
           hoverTimeoutRef.current = setTimeout(() => {
             if (!isHoveringCardRef.current) {
+              hoveredIssueIdRef.current = null;
               setHoveredIssue(null);
             }
           }, 150);
@@ -263,6 +265,7 @@ export default function CodeEditor({
       clearHoverTimeout();
       hoverTimeoutRef.current = setTimeout(() => {
         if (!isHoveringCardRef.current) {
+          hoveredIssueIdRef.current = null;
           setHoveredIssue(null);
         }
       }, 300);
@@ -360,10 +363,12 @@ export default function CodeEditor({
             }}
             onClose={() => {
               isHoveringCardRef.current = false;
+              hoveredIssueIdRef.current = null;
               setHoveredIssue(null);
             }}
             onClick={() => {
               isHoveringCardRef.current = false;
+              hoveredIssueIdRef.current = null;
               onSelectIssue(hoveredIssue);
               setHoveredIssue(null);
             }}
