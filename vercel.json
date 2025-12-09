@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd packages/frontend && pnpm run build",
+  "buildCommand": "cd packages/frontend && pnpm run build && cp -r ../../docs/site dist/docs",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "pnpm install",
   "framework": "vite",
