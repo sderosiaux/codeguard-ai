@@ -33,6 +33,12 @@ export default function CodeEditor({
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isHoveringCardRef = useRef<boolean>(false);
   const hoveredIssueIdRef = useRef<string | number | null>(null);
+  const issuesRef = useRef<Issue[]>(issues);
+
+  // Keep issues ref in sync
+  useEffect(() => {
+    issuesRef.current = issues;
+  }, [issues]);
 
   // State for custom hover card
   const [hoveredIssue, setHoveredIssue] = useState<Issue | null>(null);
@@ -184,14 +190,14 @@ export default function CodeEditor({
     }
   }, [content, issues, filePath, highlightLines]);
 
-  // Find issue at a specific line
+  // Find issue at a specific line (uses ref to always have latest issues)
   const findIssueAtLine = useCallback((lineNumber: number): Issue | undefined => {
-    return issues.find((i) => {
+    return issuesRef.current.find((i) => {
       const start = i.lineStart || 1;
       const end = i.lineEnd || start;
       return lineNumber >= start && lineNumber <= end;
     });
-  }, [issues]);
+  }, []);
 
   const handleEditorDidMount = useCallback((
     editor: editor.IStandaloneCodeEditor,
@@ -275,7 +281,7 @@ export default function CodeEditor({
     requestAnimationFrame(() => {
       setTimeout(() => applyDecorations(), 50);
     });
-  }, [issues, onSelectIssue, applyDecorations, findIssueAtLine, clearHoverTimeout]);
+  }, [onSelectIssue, applyDecorations, findIssueAtLine, clearHoverTimeout]);
 
   if (isLoading) {
     return (
