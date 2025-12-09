@@ -61,6 +61,7 @@ markdown_extensions:
       permalink: true
 
 extra:
+  homepage: https://security-guard-ai.vercel.app/
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/sderosiaux/codeguard-ai

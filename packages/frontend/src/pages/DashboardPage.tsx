@@ -99,7 +99,7 @@ export default function DashboardPage() {
       <header className="relative z-10 bg-white/70 backdrop-blur-md border-b border-gray-200/50 sticky top-0">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
+            <a href="/app" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
                   <Shield className="w-5 h-5 text-white" />
@@ -109,7 +109,7 @@ export default function DashboardPage() {
               <span className="text-xl font-bold tracking-tight text-gray-900">
                 CodeGuard<span className="text-emerald-600">AI</span>
               </span>
-            </div>
+            </a>
 
             <div className="flex items-center gap-3">
               <a
