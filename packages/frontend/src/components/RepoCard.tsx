@@ -4,7 +4,7 @@ import { Clock, RefreshCw, XCircle, Loader2, ChevronRight, Shield, Timer } from 
 import { useRecheckRepo, useDeleteRepo } from '../hooks/useApi';
 import type { Repository } from '../lib/api';
 
-// Calculate security grade based on issue counts
+// Calculate security grade based on weighted issue score
 function calculateGrade(issueCounts: { critical: number; high: number; medium: number; low: number }): {
   grade: string;
   color: string;
@@ -12,20 +12,31 @@ function calculateGrade(issueCounts: { critical: number; high: number; medium: n
   borderColor: string;
 } {
   const { critical, high, medium, low } = issueCounts;
+  const total = critical + high + medium + low;
 
-  if (critical > 0) {
-    return { grade: 'F', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
+  // No issues = A
+  if (total === 0) {
+    return { grade: 'A', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
   }
-  if (high > 0) {
-    return { grade: 'D', color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' };
+
+  // Calculate weighted score (higher = worse)
+  // Critical: 10pts, High: 5pts, Medium: 2pts, Low: 1pt
+  const score = critical * 10 + high * 5 + medium * 2 + low * 1;
+
+  // Grade based on score thresholds
+  if (score <= 5) {
+    return { grade: 'A', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
   }
-  if (medium > 0) {
-    return { grade: 'C', color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' };
-  }
-  if (low > 0) {
+  if (score <= 15) {
     return { grade: 'B', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
   }
-  return { grade: 'A', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
+  if (score <= 30) {
+    return { grade: 'C', color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' };
+  }
+  if (score <= 60) {
+    return { grade: 'D', color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' };
+  }
+  return { grade: 'F', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
 }
 
 interface RepoCardProps {
