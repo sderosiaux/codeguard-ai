@@ -98,14 +98,9 @@ func runScan(cmd *cobra.Command, args []string) error {
 	client := api.NewClient(cfg.APIURL, cfg.APIKey)
 
 	// Status callback for animated progress
-	spinnerFrames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-	frameIdx := 0
-	lastStatus := ""
+	fmt.Printf("%s⠋%s Running AI security analysis...%s", ui.Cyan, ui.Reset, strings.Repeat(" ", 20))
 
 	onStatus := func(status string) {
-		frame := spinnerFrames[frameIdx%len(spinnerFrames)]
-		frameIdx++
-
 		statusText := "Initializing..."
 		switch status {
 		case "pending":
@@ -117,16 +112,8 @@ func runScan(cmd *cobra.Command, args []string) error {
 		case "error":
 			statusText = "Analysis failed"
 		}
-
-		if status != lastStatus {
-			lastStatus = status
-			fmt.Printf("\r%s%s%s %s%s", ui.Cyan, frame, ui.Reset, statusText, strings.Repeat(" ", 20))
-		} else {
-			fmt.Printf("\r%s%s%s %s%s", ui.Cyan, frame, ui.Reset, statusText, strings.Repeat(" ", 20))
-		}
+		fmt.Printf("\r%s⠋%s %s%s", ui.Cyan, ui.Reset, statusText, strings.Repeat(" ", 20))
 	}
-
-	fmt.Printf("%s⠋%s Running AI security analysis...%s", ui.Cyan, ui.Reset, strings.Repeat(" ", 20))
 
 	scanResp, err := client.Scan(result.Files, onStatus)
 	if err != nil {
