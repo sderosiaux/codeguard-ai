@@ -11,7 +11,6 @@ import {
   Code2,
   LucideIcon,
 } from 'lucide-react';
-import { Badge } from './ui/Badge';
 import StatsOverview from './StatsOverview';
 import type { Issue, FileIssues } from '../lib/api';
 
@@ -82,7 +81,6 @@ const parentGroupConfig: Record<string, { icon: LucideIcon; color: string; bgCol
   'Code Quality': { icon: Code2, color: 'text-blue-600', bgColor: 'bg-blue-50' },
 };
 
-const severityOrder = ['critical', 'high', 'medium', 'low'] as const;
 const severityColors: Record<string, string> = {
   critical: 'bg-red-500',
   high: 'bg-orange-500',

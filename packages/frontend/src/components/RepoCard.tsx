@@ -1,7 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Clock, AlertTriangle, GitBranch, RefreshCw, CheckCircle2, XCircle, Loader2, ChevronRight, Shield } from 'lucide-react';
-import { Badge } from './ui/Badge';
-import { Button } from './ui/Button';
+import { Clock, GitBranch, RefreshCw, XCircle, Loader2, ChevronRight, Shield } from 'lucide-react';
 import { useRecheckRepo, useDeleteRepo } from '../hooks/useApi';
 import type { Repository } from '../lib/api';
 
@@ -47,9 +45,6 @@ export default function RepoCard({ repo }: RepoCardProps) {
 
   const issueCounts = repo.issueCounts || { critical: 0, high: 0, medium: 0, low: 0 };
   const totalIssues = issueCounts.critical + issueCounts.high + issueCounts.medium + issueCounts.low;
-
-  // Calculate a "health score" for visual representation
-  const healthScore = totalIssues === 0 ? 100 : Math.max(0, 100 - (issueCounts.critical * 25 + issueCounts.high * 10 + issueCounts.medium * 3 + issueCounts.low));
 
   return (
     <div

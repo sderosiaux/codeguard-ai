@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, File, FileCode } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import Toggle from './ui/Toggle';
-import type { FileNode, Issue, IssuesByFile } from '../lib/api';
+import type { FileNode, IssuesByFile } from '../lib/api';
 
 interface FileTreeProps {
   files: FileNode[];

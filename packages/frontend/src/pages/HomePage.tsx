@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useRepos } from '../hooks/useApi';
 import RepoCard from '../components/RepoCard';
 import AddRepoDialog from '../components/AddRepoDialog';
@@ -17,7 +16,6 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
-  const navigate = useNavigate();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { data: repos, isLoading, error, refetch } = useRepos();
   const [scanProgress, setScanProgress] = useState(0);
