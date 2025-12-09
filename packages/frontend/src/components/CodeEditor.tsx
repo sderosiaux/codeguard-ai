@@ -382,7 +382,7 @@ export default function CodeEditor({
               const lineParam = hoveredIssue.lineEnd && hoveredIssue.lineEnd !== hoveredIssue.lineStart
                 ? `${hoveredIssue.lineStart}-${hoveredIssue.lineEnd}`
                 : `${hoveredIssue.lineStart}`;
-              return `${window.location.origin}/repos/${owner}/${name}/code/${encodeURIComponent(filePath)}?L=${lineParam}`;
+              return `${window.location.origin}/app/repos/${owner}/${name}/code/${encodeURIComponent(filePath)}?L=${lineParam}`;
             })() : undefined}
           />
         )}

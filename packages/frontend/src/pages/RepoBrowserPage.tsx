@@ -70,10 +70,10 @@ export default function RepoBrowserPage() {
       const lineParam = issue.lineEnd && issue.lineEnd !== issue.lineStart
         ? `${issue.lineStart}-${issue.lineEnd}`
         : `${issue.lineStart}`;
-      navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}?L=${lineParam}`, { replace: true });
+      navigate(`/app/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}?L=${lineParam}`, { replace: true });
     } else if (selectedFile && !issue) {
       // Clear line param when deselecting issue
-      navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}`, { replace: true });
+      navigate(`/app/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}`, { replace: true });
     }
   }, [issuePanelCollapsed, selectedFile, owner, name, navigate]);
 
@@ -117,14 +117,14 @@ export default function RepoBrowserPage() {
   // Navigation helpers
   const setSelectedFile = useCallback((file: string | null) => {
     if (file) {
-      navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(file)}`);
+      navigate(`/app/repos/${owner}/${name}/code/${encodeURIComponent(file)}`);
     } else {
-      navigate(`/repos/${owner}/${name}/code`);
+      navigate(`/app/repos/${owner}/${name}/code`);
     }
   }, [owner, name, navigate]);
 
   const handleNavigateToFile = useCallback((file: string, lineStart?: number, lineEnd?: number) => {
-    let url = `/repos/${owner}/${name}/code/${encodeURIComponent(file)}`;
+    let url = `/app/repos/${owner}/${name}/code/${encodeURIComponent(file)}`;
     if (lineStart) {
       const lineParam = lineEnd && lineEnd !== lineStart ? `${lineStart}-${lineEnd}` : `${lineStart}`;
       url += `?L=${lineParam}`;
@@ -169,7 +169,7 @@ export default function RepoBrowserPage() {
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/app')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -211,7 +211,7 @@ export default function RepoBrowserPage() {
         {/* Tabs */}
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
           <button
-            onClick={() => navigate(`/repos/${owner}/${name}`)}
+            onClick={() => navigate(`/app/repos/${owner}/${name}`)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
               activeTab === 'dashboard'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -222,7 +222,7 @@ export default function RepoBrowserPage() {
             Dashboard
           </button>
           <button
-            onClick={() => navigate(`/repos/${owner}/${name}/code`)}
+            onClick={() => navigate(`/app/repos/${owner}/${name}/code`)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
               activeTab === 'code'
                 ? 'bg-white text-gray-900 shadow-sm'

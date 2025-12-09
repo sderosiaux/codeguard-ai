@@ -80,7 +80,7 @@ export default function RepoCard({ repo }: RepoCardProps) {
   return (
     <div
       className="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg"
-      onClick={() => navigate(`/repos/${repo.owner}/${repo.name}`)}
+      onClick={() => navigate(`/app/repos/${repo.owner}/${repo.name}`)}
     >
       {/* Content */}
       <div className="relative">

@@ -15,7 +15,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
-export default function HomePage() {
+export default function DashboardPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { data: repos, isLoading, error, refetch } = useRepos();
   const [scanProgress, setScanProgress] = useState(0);
