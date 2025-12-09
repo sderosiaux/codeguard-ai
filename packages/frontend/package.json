@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "echo 'No linter configured'"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",

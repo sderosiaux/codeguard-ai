@@ -149,7 +149,7 @@ async function runAnalysis(scanId: string, files: FileContent[]): Promise<void> 
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const textContent = message.content.find(block => block.type === 'text');
+    const textContent = message.content.find((block: { type: string }) => block.type === 'text');
     if (!textContent || textContent.type !== 'text') {
       throw new Error('No text response from Claude');
     }
