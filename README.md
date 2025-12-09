@@ -214,5 +214,5 @@ MIT
 ---
 
 <p align="center">
-  <strong>Built with Claude AI</strong>
+  Built with developer love by <a href="https://github.com/sderosiaux">@sderosiaux</a>
 </p>
