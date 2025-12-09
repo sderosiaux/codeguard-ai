@@ -65,11 +65,16 @@ export async function fetchRepo(id: string): Promise<Repository> {
   return response.json();
 }
 
-export async function createRepo(githubUrl: string): Promise<Repository> {
+export interface CreateRepoParams {
+  githubUrl: string;
+  accessToken?: string;
+}
+
+export async function createRepo(params: CreateRepoParams): Promise<Repository> {
   const response = await fetch(`${API_BASE}/repos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ githubUrl }),
+    body: JSON.stringify(params),
   });
   if (!response.ok) throw new Error('Failed to create repository');
   return response.json();

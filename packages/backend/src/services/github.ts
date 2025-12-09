@@ -1,11 +1,17 @@
 import simpleGit from 'simple-git';
 
-export async function cloneRepository(githubUrl: string, targetPath: string): Promise<void> {
+export async function cloneRepository(githubUrl: string, targetPath: string, accessToken?: string): Promise<void> {
   const git = simpleGit();
+
+  // Inject token into URL for private repos: https://TOKEN@github.com/owner/repo
+  let cloneUrl = githubUrl;
+  if (accessToken) {
+    cloneUrl = githubUrl.replace('https://github.com', `https://${accessToken}@github.com`);
+  }
 
   try {
     // Shallow clone: only latest commit, single branch (most efficient)
-    await git.clone(githubUrl, targetPath, ['--depth', '1', '--single-branch']);
+    await git.clone(cloneUrl, targetPath, ['--depth', '1', '--single-branch']);
     console.log(`Successfully cloned ${githubUrl} to ${targetPath}`);
   } catch (error) {
     console.error(`Failed to clone ${githubUrl}:`, error);

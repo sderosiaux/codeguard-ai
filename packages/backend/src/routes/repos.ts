@@ -12,6 +12,7 @@ const router = Router();
 // Validation schemas
 const addRepoSchema = z.object({
   githubUrl: z.string().min(1),
+  accessToken: z.string().optional(),
 });
 
 // Normalize input to full GitHub URL
@@ -117,7 +118,7 @@ router.post('/', async (req, res, next) => {
       .returning();
 
     // Start background process to clone and analyze
-    processRepository(repo.id, githubUrl, owner, name).catch((err) => {
+    processRepository(repo.id, githubUrl, owner, name, body.accessToken).catch((err) => {
       console.error(`Background processing failed for repo ${repo.id}:`, err);
     });
 
@@ -250,7 +251,8 @@ async function processRepository(
   repoId: number,
   githubUrl: string,
   owner: string,
-  name: string
+  name: string,
+  accessToken?: string
 ): Promise<void> {
   try {
     // Delete old issues before re-analyzing
@@ -277,7 +279,7 @@ async function processRepository(
     }
 
     if (dirExists) {
-      // Pull latest changes
+      // Pull latest changes (note: will fail for private repos without stored token)
       await pullRepository(localPath);
       // Remove old .codeguard folder for fresh analysis
       const codeguardPath = path.join(localPath, '.codeguard');
@@ -287,8 +289,8 @@ async function processRepository(
         // Ignore if doesn't exist
       }
     } else {
-      // Clone fresh
-      await cloneRepository(githubUrl, localPath);
+      // Clone fresh (with optional token for private repos)
+      await cloneRepository(githubUrl, localPath, accessToken);
     }
 
     // Update status to analyzing

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog } from './ui/Dialog';
 import { Button } from './ui/Button';
 import { useCreateRepo } from '../hooks/useApi';
-import { Github, AlertCircle } from 'lucide-react';
+import { Github, AlertCircle, Key, Eye, EyeOff } from 'lucide-react';
 
 interface AddRepoDialogProps {
   open: boolean;
@@ -11,6 +11,8 @@ interface AddRepoDialogProps {
 
 export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
   const [githubUrl, setGithubUrl] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
   const [error, setError] = useState('');
   const createMutation = useCreateRepo();
 
@@ -39,8 +41,9 @@ export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
     }
 
     try {
-      await createMutation.mutateAsync(githubUrl);
+      await createMutation.mutateAsync({ githubUrl, accessToken: accessToken || undefined });
       setGithubUrl('');
+      setAccessToken('');
       onClose();
     } catch (err) {
       setError((err as Error).message || 'Failed to add repository');
@@ -49,6 +52,8 @@ export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
 
   const handleClose = () => {
     setGithubUrl('');
+    setAccessToken('');
+    setShowToken(false);
     setError('');
     onClose();
   };
@@ -82,6 +87,39 @@ export default function AddRepoDialog({ open, onClose }: AddRepoDialogProps) {
               <span>{error}</span>
             </div>
           )}
+        </div>
+
+        {/* Optional Access Token for Private Repos */}
+        <div>
+          <label
+            htmlFor="access-token"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
+            Access Token <span className="text-gray-400 font-normal">(optional, for private repos)</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Key className="w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              id="access-token"
+              type={showToken ? 'text' : 'password'}
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxx"
+              className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:bg-white transition-all duration-200"
+            />
+            <button
+              type="button"
+              onClick={() => setShowToken(!showToken)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            >
+              {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Generate a token at GitHub → Settings → Developer settings → Personal access tokens
+          </p>
         </div>
 
         <div className="pt-2 flex justify-end gap-3">
