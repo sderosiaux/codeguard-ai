@@ -117,18 +117,30 @@ log "Environment configured"
 log "Installing Claude CLI..."
 npm install -g @anthropic-ai/claude-code
 
+# Get the path to the installed claude binary
+CLAUDE_PATH=$(which claude || echo "/usr/local/bin/claude")
+log "Claude installed at: $CLAUDE_PATH"
+
 # Configure Claude for autonomous operation
 CLAUDE_CONFIG_DIR="/home/$APP_USER/.claude"
 mkdir -p "$CLAUDE_CONFIG_DIR"
 
+# Settings for autonomous/headless operation
 cat > "$CLAUDE_CONFIG_DIR/settings.json" <<EOF
 {
   "permissions": {
-    "allow_all": true,
-    "auto_approve": true
+    "allow": [
+      "Read",
+      "Write",
+      "Bash",
+      "Glob",
+      "Grep"
+    ],
+    "deny": []
   },
   "preferences": {
-    "verbose": false
+    "verbose": false,
+    "auto_compact": true
   }
 }
 EOF
@@ -137,7 +149,12 @@ chown -R "$APP_USER:$APP_USER" "$CLAUDE_CONFIG_DIR"
 chmod 700 "$CLAUDE_CONFIG_DIR"
 chmod 600 "$CLAUDE_CONFIG_DIR/settings.json"
 
-log "Claude CLI installed: $(claude --version 2>/dev/null || echo 'installed')"
+# Add CLAUDE_CMD to .env so the backend knows where to find it
+echo "CLAUDE_CMD=$CLAUDE_PATH" >> "$APP_DIR/packages/backend/.env"
+echo "CLAUDE_MAX_TURNS=50" >> "$APP_DIR/packages/backend/.env"
+
+log "Claude CLI configured for autonomous operation"
+log "Claude version: $(sudo -u $APP_USER $CLAUDE_PATH --version 2>/dev/null || echo 'installed')"
 
 # -----------------------------------------------------------------------------
 # 7. Build Application

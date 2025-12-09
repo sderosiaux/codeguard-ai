@@ -7,6 +7,10 @@ import { parseReportFile } from './parser.js';
 import path from 'path';
 import fs from 'fs/promises';
 
+// Claude CLI configuration for autonomous operation
+const CLAUDE_CMD = process.env.CLAUDE_CMD || 'claude';
+const CLAUDE_MAX_TURNS = process.env.CLAUDE_MAX_TURNS || '50';
+
 export async function runAnalysis(
   repoPath: string,
   prompt: string,
@@ -14,8 +18,24 @@ export async function runAnalysis(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     console.log(`Running Claude analysis in ${repoPath}...`);
+    console.log(`Claude command: ${CLAUDE_CMD}`);
 
-    const claude = spawn('claude', ['-p', prompt, '--allowedTools', 'Write,Read,Bash,Glob,Grep', '--dangerously-skip-permissions'], {
+    // Flags for autonomous VM operation:
+    // -p: Print mode (non-interactive, runs prompt and exits)
+    // --dangerously-skip-permissions: Skip all permission prompts
+    // --allowedTools: Restrict tools for security
+    // --max-turns: Limit conversation turns to prevent runaway
+    // --verbose: Log progress for debugging
+    const args = [
+      '-p', prompt,
+      '--allowedTools', 'Write,Read,Bash,Glob,Grep',
+      '--dangerously-skip-permissions',
+      '--max-turns', CLAUDE_MAX_TURNS,
+    ];
+
+    console.log(`Claude args: ${args.join(' ').substring(0, 100)}...`);
+
+    const claude = spawn(CLAUDE_CMD, args, {
       cwd: repoPath,
       env: { ...process.env },
       stdio: ['ignore', 'pipe', 'pipe'],
