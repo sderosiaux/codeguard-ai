@@ -99,12 +99,11 @@ func runScan(cmd *cobra.Command, args []string) error {
 
 	// Status callback for animated progress
 	var frameIdx int
-	spinnerFrames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-	fmt.Printf("%s%s%s Running AI security analysis...%s", ui.Cyan, spinnerFrames[0], ui.Reset, strings.Repeat(" ", 20))
+	fmt.Printf("%s%s%s Running AI security analysis...%s", ui.Cyan, ui.SpinnerFrames[0], ui.Reset, strings.Repeat(" ", 20))
 
 	onStatus := func(status string) {
-		frame := spinnerFrames[frameIdx%len(spinnerFrames)]
+		frame := ui.SpinnerFrames[frameIdx%len(ui.SpinnerFrames)]
 		frameIdx++
 
 		statusText := "Initializing..."

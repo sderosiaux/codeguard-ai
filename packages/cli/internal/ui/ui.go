@@ -78,8 +78,8 @@ func Info(msg string) {
 	fmt.Printf("%s→%s %s\n", Cyan, Reset, msg)
 }
 
-// Spinner characters for loading animation
-var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+// SpinnerFrames contains characters for loading animation
+var SpinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 // Spinner represents a loading spinner
 type Spinner struct {
