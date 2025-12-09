@@ -1,6 +1,6 @@
 site_name: CodeGuard AI
 site_description: AI-powered security scanner for your codebase
-site_url: https://codeguard-ai.github.io/docs
+site_url: https://security-guard-ai.vercel.app/docs
 repo_url: https://github.com/sderosiaux/codeguard-ai
 repo_name: sderosiaux/codeguard-ai
 

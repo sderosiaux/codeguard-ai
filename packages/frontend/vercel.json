@@ -1,4 +1,7 @@
 {
+  "installCommand": "pnpm install && pip install mkdocs-material",
+  "buildCommand": "pnpm build && cd ../../docs && mkdocs build --site-dir ../packages/frontend/dist/docs",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/:path*",

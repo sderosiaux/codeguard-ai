@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -8,13 +9,10 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// Types
 interface FileContent {
   path: string;
   content: string;
-}
-
-interface ScanRequest {
-  files: FileContent[];
 }
 
 interface Issue {
@@ -29,12 +27,32 @@ interface Issue {
   suggestion: string;
 }
 
-interface ScanResponse {
-  issues: Issue[];
-  grade: string;
-  score: number;
-  filesScanned: number;
+type ScanStatus = 'pending' | 'analyzing' | 'completed' | 'error';
+
+interface ScanJob {
+  id: string;
+  status: ScanStatus;
+  filesCount: number;
+  createdAt: Date;
+  completedAt?: Date;
+  issues?: Issue[];
+  grade?: string;
+  score?: number;
+  error?: string;
 }
+
+// In-memory store for scan jobs (use Redis/DB in production)
+const scanJobs = new Map<string, ScanJob>();
+
+// Clean up old jobs (older than 1 hour)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [id, job] of scanJobs.entries()) {
+    if (job.createdAt.getTime() < oneHourAgo) {
+      scanJobs.delete(id);
+    }
+  }
+}, 5 * 60 * 1000); // Run every 5 minutes
 
 // Calculate grade from issue counts
 function calculateGrade(issues: Issue[]): { grade: string; score: number } {
@@ -115,33 +133,22 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
 Return ONLY valid JSON. No markdown code blocks, no explanations.`;
 }
 
-// POST /api/cli/scan - Analyze files sent from CLI
-router.post('/scan', async (req, res) => {
+// Run analysis in background
+async function runAnalysis(scanId: string, files: FileContent[]): Promise<void> {
+  const job = scanJobs.get(scanId);
+  if (!job) return;
+
   try {
-    const { files } = req.body as ScanRequest;
+    job.status = 'analyzing';
 
-    if (!files || !Array.isArray(files) || files.length === 0) {
-      return res.status(400).json({ error: 'No files provided' });
-    }
-
-    console.log(`CLI scan request: ${files.length} files`);
-
-    // Build prompt with file contents
     const prompt = buildAnalysisPrompt(files);
 
-    // Call Claude API
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      messages: [{ role: 'user', content: prompt }],
     });
 
-    // Extract text content
     const textContent = message.content.find(block => block.type === 'text');
     if (!textContent || textContent.type !== 'text') {
       throw new Error('No text response from Claude');
@@ -150,7 +157,6 @@ router.post('/scan', async (req, res) => {
     // Parse JSON response
     let analysisResult: { issues: Issue[] };
     try {
-      // Try to extract JSON from the response (handle potential markdown wrapping)
       let jsonStr = textContent.text.trim();
 
       // Remove markdown code blocks if present
@@ -165,30 +171,104 @@ router.post('/scan', async (req, res) => {
       jsonStr = jsonStr.trim();
 
       analysisResult = JSON.parse(jsonStr);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse Claude response:', textContent.text);
-      // Return empty issues if parsing fails
       analysisResult = { issues: [] };
     }
 
-    // Calculate grade
     const { grade, score } = calculateGrade(analysisResult.issues || []);
 
-    const response: ScanResponse = {
-      issues: analysisResult.issues || [],
-      grade,
-      score,
-      filesScanned: files.length,
+    job.status = 'completed';
+    job.completedAt = new Date();
+    job.issues = analysisResult.issues || [];
+    job.grade = grade;
+    job.score = score;
+
+    console.log(`Scan ${scanId} complete: ${job.issues.length} issues, grade ${grade}`);
+  } catch (error) {
+    console.error(`Scan ${scanId} failed:`, error);
+    job.status = 'error';
+    job.completedAt = new Date();
+    job.error = error instanceof Error ? error.message : 'Unknown error';
+  }
+}
+
+// POST /api/cli/scan - Start a new scan (returns immediately with scan ID)
+router.post('/scan', async (req, res) => {
+  try {
+    const { files } = req.body as { files: FileContent[] };
+
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: 'No files provided' });
+    }
+
+    const scanId = randomUUID();
+    const job: ScanJob = {
+      id: scanId,
+      status: 'pending',
+      filesCount: files.length,
+      createdAt: new Date(),
     };
 
-    console.log(`CLI scan complete: ${response.issues.length} issues found, grade: ${grade}`);
+    scanJobs.set(scanId, job);
 
-    res.json(response);
+    console.log(`Started scan ${scanId}: ${files.length} files`);
+
+    // Start analysis in background (don't await)
+    runAnalysis(scanId, files);
+
+    // Return immediately with scan ID
+    res.status(202).json({
+      scanId,
+      status: 'pending',
+      filesCount: files.length,
+      message: 'Scan started. Poll GET /api/cli/scan/:scanId for results.',
+    });
   } catch (error) {
     console.error('CLI scan error:', error);
     res.status(500).json({
-      error: 'Analysis failed',
+      error: 'Failed to start scan',
       message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// GET /api/cli/scan/:scanId - Get scan status and results
+router.get('/scan/:scanId', (req, res) => {
+  const { scanId } = req.params;
+
+  const job = scanJobs.get(scanId);
+  if (!job) {
+    return res.status(404).json({ error: 'Scan not found' });
+  }
+
+  if (job.status === 'completed') {
+    res.json({
+      scanId: job.id,
+      status: job.status,
+      filesScanned: job.filesCount,
+      issues: job.issues,
+      grade: job.grade,
+      score: job.score,
+      createdAt: job.createdAt,
+      completedAt: job.completedAt,
+    });
+  } else if (job.status === 'error') {
+    res.json({
+      scanId: job.id,
+      status: job.status,
+      filesScanned: job.filesCount,
+      error: job.error,
+      createdAt: job.createdAt,
+      completedAt: job.completedAt,
+    });
+  } else {
+    // pending or analyzing
+    res.json({
+      scanId: job.id,
+      status: job.status,
+      filesScanned: job.filesCount,
+      createdAt: job.createdAt,
     });
   }
 });
