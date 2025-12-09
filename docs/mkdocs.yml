@@ -1,0 +1,91 @@
+site_name: CodeGuard AI
+site_description: AI-powered security scanner for your codebase
+site_url: https://codeguard-ai.github.io/docs
+repo_url: https://github.com/sderosiaux/codeguard-ai
+repo_name: sderosiaux/codeguard-ai
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  - tags
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/sderosiaux/codeguard-ai
+  generator: false
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - Concepts:
+    - How It Works: concepts/how-it-works.md
+    - Security Analysis: concepts/security-analysis.md
+    - Severity Levels: concepts/severity-levels.md
+    - Grading System: concepts/grading.md
+  - CLI Reference:
+    - Overview: reference/cli-overview.md
+    - Commands: reference/commands.md
+    - Configuration: reference/cli-config.md
+  - Guides:
+    - CI/CD Integration: guides/ci-cd.md
+    - GitHub Actions: guides/github-actions.md
+    - Self-Hosted: guides/self-hosted.md
+  - Examples:
+    - Node.js Project: examples/nodejs.md
+    - Python Project: examples/python.md
+    - Go Project: examples/go.md
