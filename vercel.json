@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd packages/frontend && pnpm run build",
+  "outputDirectory": "packages/frontend/dist",
+  "installCommand": "pnpm install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://34.170.58.101:3001/api/:path*"
+    }
+  ]
+}
