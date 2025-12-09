@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd packages/frontend && pnpm run build && cd ../../docs && pip install mkdocs-material && mkdocs build --site-dir ../packages/frontend/dist/docs",
+  "buildCommand": "cd packages/frontend && pnpm run build",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "pnpm install",
   "framework": "vite",
