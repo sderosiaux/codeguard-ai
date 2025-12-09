@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd packages/frontend && pnpm run build",
+  "buildCommand": "cd packages/frontend && pnpm run build && cd ../../docs && pip install mkdocs-material && mkdocs build --site-dir ../packages/frontend/dist/docs",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "pnpm install",
   "framework": "vite",
@@ -7,6 +7,14 @@
     {
       "source": "/api/:path*",
       "destination": "http://34.170.58.101/api/:path*"
+    },
+    {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/index.html"
     }
   ]
 }
