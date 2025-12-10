@@ -898,9 +898,11 @@ pnpm --filter frontend dev
 - [x] Light theme
 
 ### Not Included (Future)
-- [ ] Private repositories (OAuth)
-- [ ] User authentication
-- [ ] Dark mode
+- [x] Private repositories (OAuth)
+- [x] User authentication
+- [ ] AI Fix Suggestions - "Fix with AI" button that generates patched code via Claude
+- [ ] Diff View - Monaco diff editor showing original vs fixed code
+- [ ] Ignore Rules - `.codeguardignore` file to skip specific issues/files/categories
 - [ ] Export reports (PDF/JSON)
 - [ ] Dashboard with trends
 - [ ] Webhooks for auto-recheck on push
