@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen, Key, X } from 'lucide-react';
 import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -12,6 +12,13 @@ import IssueDashboard from '../components/IssueDashboard';
 import ProfileMenu from '../components/ProfileMenu';
 import ShareButton from '../components/ShareButton';
 import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
+
+// Check if error message indicates auth/private repo issue
+function isAuthError(errorMessage: string | null | undefined): boolean {
+  if (!errorMessage) return false;
+  const authKeywords = ['authentication', 'username', 'password', 'token', 'private', 'permission', 'denied', 'not found'];
+  return authKeywords.some(keyword => errorMessage.toLowerCase().includes(keyword));
+}
 
 type TabType = 'dashboard' | 'code';
 
@@ -40,6 +47,10 @@ export default function RepoBrowserPage() {
   const lineRange = parseLineRange(searchParams.get('L'));
 
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+
+  // Token dialog state for private repos
+  const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [accessToken, setAccessToken] = useState('');
 
   // Panel sizing and collapse state
   const [sidebarWidth, setSidebarWidth] = useState(320);
@@ -110,11 +121,22 @@ export default function RepoBrowserPage() {
     }
   }, [lineRange, selectedFile, issuesByFileMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleRecheck = () => {
+  const handleRecheck = (token?: string) => {
     if (repoId) {
-      recheckMutation.mutate(repoId);
+      recheckMutation.mutate({ id: repoId, accessToken: token });
     }
   };
+
+  const handleTokenSubmit = () => {
+    if (accessToken.trim()) {
+      handleRecheck(accessToken.trim());
+      setShowTokenDialog(false);
+      setAccessToken('');
+    }
+  };
+
+  // Show token dialog if repo has auth error
+  const hasAuthError = repo?.status === 'error' && isAuthError(repo?.errorMessage);
 
   // Navigation helpers
   const setSelectedFile = useCallback((file: string | null) => {
@@ -202,14 +224,25 @@ export default function RepoBrowserPage() {
           </div>
           <div className="flex items-center gap-3">
             <ShareButton repoId={repo.id} />
-            <Button
-              onClick={handleRecheck}
-              disabled={recheckMutation.isPending || isAnalyzing}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${recheckMutation.isPending ? 'animate-spin' : ''}`} />
-              Recheck
-            </Button>
+            {hasAuthError ? (
+              <Button
+                onClick={() => setShowTokenDialog(true)}
+                disabled={recheckMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                <Key className="w-4 h-4" />
+                Provide Token
+              </Button>
+            ) : (
+              <Button
+                onClick={() => handleRecheck()}
+                disabled={recheckMutation.isPending || isAnalyzing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${recheckMutation.isPending ? 'animate-spin' : ''}`} />
+                Recheck
+              </Button>
+            )}
             <ProfileMenu />
           </div>
         </div>
@@ -394,6 +427,67 @@ export default function RepoBrowserPage() {
           </>
         )}
       </div>
+
+      {/* Token Dialog */}
+      {showTokenDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">GitHub Access Token</h3>
+              <button
+                onClick={() => {
+                  setShowTokenDialog(false);
+                  setAccessToken('');
+                }}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-4">
+                This appears to be a private repository. Please provide a GitHub personal access token with <code className="bg-gray-100 px-1 rounded">repo</code> scope to access it.
+              </p>
+              <input
+                type="password"
+                value={accessToken}
+                onChange={(e) => setAccessToken(e.target.value)}
+                placeholder="ghp_xxxxxxxxxxxx"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && handleTokenSubmit()}
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Your token is only used for this request and is not stored.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-xl">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowTokenDialog(false);
+                  setAccessToken('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleTokenSubmit}
+                disabled={!accessToken.trim() || recheckMutation.isPending}
+              >
+                {recheckMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Analyzing...
+                  </>
+                ) : (
+                  'Start Analysis'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

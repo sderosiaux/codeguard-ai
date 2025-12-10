@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ProfileMenu from '../components/ProfileMenu';
 import {
   Shield,
@@ -6,15 +7,35 @@ import {
   ArrowLeft,
   BookOpen,
   Users,
+  Settings,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { GeneralTab } from '../components/settings/GeneralTab';
 import { TokensTab } from '../components/settings/TokensTab';
 import { MembersTab } from '../components/settings/MembersTab';
 
-type TabType = 'tokens' | 'members';
+type TabType = 'general' | 'tokens' | 'members';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('tokens');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'tokens' || tab === 'members' || tab === 'general') return tab;
+    return 'general';
+  });
+
+  // Sync tab with URL
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'tokens' || tab === 'members' || tab === 'general') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -80,7 +101,18 @@ export default function SettingsPage() {
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
           <button
-            onClick={() => setActiveTab('tokens')}
+            onClick={() => handleTabChange('general')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              activeTab === 'general'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            General
+          </button>
+          <button
+            onClick={() => handleTabChange('tokens')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
               activeTab === 'tokens'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -91,7 +123,7 @@ export default function SettingsPage() {
             API Tokens
           </button>
           <button
-            onClick={() => setActiveTab('members')}
+            onClick={() => handleTabChange('members')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
               activeTab === 'members'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -104,6 +136,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Tab Content */}
+        {activeTab === 'general' && <GeneralTab />}
         {activeTab === 'tokens' && <TokensTab />}
         {activeTab === 'members' && <MembersTab />}
       </main>

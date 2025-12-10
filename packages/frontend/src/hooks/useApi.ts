@@ -73,7 +73,8 @@ export function useCreateRepo() {
 export function useRecheckRepo() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string | number) => api.recheckRepo(id),
+    mutationFn: ({ id, accessToken }: { id: string | number; accessToken?: string }) =>
+      api.recheckRepo(id, accessToken),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['repos'] });
       queryClient.invalidateQueries({ queryKey: ['repos', String(data.id)] });

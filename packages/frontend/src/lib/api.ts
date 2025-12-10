@@ -121,9 +121,10 @@ export async function createRepo(params: CreateRepoParams): Promise<Repository> 
   return response.json();
 }
 
-export async function recheckRepo(id: string | number): Promise<Repository> {
+export async function recheckRepo(id: string | number, accessToken?: string): Promise<Repository> {
   const response = await authFetch(`${API_BASE}/repos/${id}/recheck`, {
     method: 'POST',
+    body: JSON.stringify({ accessToken }),
   });
   if (!response.ok) throw new Error('Failed to recheck repository');
   return response.json();

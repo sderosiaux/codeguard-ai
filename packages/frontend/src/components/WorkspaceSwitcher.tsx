@@ -1,14 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, ChevronDown, Check, Plus, Users } from 'lucide-react';
+import CreateWorkspaceDialog from './CreateWorkspaceDialog';
 
 interface Props {
   className?: string;
 }
 
 export default function WorkspaceSwitcher({ className = '' }: Props) {
+  const navigate = useNavigate();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,18 +103,18 @@ export default function WorkspaceSwitcher({ className = '' }: Props) {
             <button
               onClick={() => {
                 setIsOpen(false);
-                // TODO: Open create workspace dialog
+                setShowCreateDialog(true);
               }}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Plus className="w-4 h-4 text-gray-400" />
               Create Workspace
             </button>
-            {currentWorkspace.isOwner && (
+            {(currentWorkspace.isOwner || currentWorkspace.role === 'admin') && (
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  // TODO: Open workspace settings/members
+                  navigate('/app/settings?tab=members');
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               >
@@ -121,6 +125,12 @@ export default function WorkspaceSwitcher({ className = '' }: Props) {
           </div>
         </div>
       )}
+
+      {/* Create Workspace Dialog */}
+      <CreateWorkspaceDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+      />
     </div>
   );
 }

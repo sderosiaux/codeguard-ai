@@ -228,6 +228,9 @@ router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid repository ID' });
     }
 
+    // Optional access token for private repos
+    const { accessToken } = req.body || {};
+
     const [repo] = await db
       .select()
       .from(repositories)
@@ -248,8 +251,8 @@ router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
       })
       .where(eq(repositories.id, id));
 
-    // Start background re-analysis
-    processRepository(id, repo.githubUrl, repo.owner, repo.name).catch((err) => {
+    // Start background re-analysis with optional token
+    processRepository(id, repo.githubUrl, repo.owner, repo.name, accessToken).catch((err) => {
       console.error(`Re-analysis failed for repo ${id}:`, err);
     });
 

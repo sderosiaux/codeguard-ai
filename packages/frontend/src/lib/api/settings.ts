@@ -133,3 +133,38 @@ export async function updateMemberRole(params: {
     body: JSON.stringify({ role: params.role }),
   });
 }
+
+// Workspace CRUD
+export interface CreateWorkspaceResponse {
+  id: string;
+  name: string;
+  slug: string;
+  ownerId: string;
+  createdAt: string;
+}
+
+export async function createWorkspace(name: string): Promise<CreateWorkspaceResponse> {
+  return apiFetch('/workspaces', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteWorkspace(workspaceId: string): Promise<void> {
+  await apiFetch(`/workspaces/${workspaceId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function leaveWorkspace(workspaceId: string): Promise<void> {
+  await apiFetch(`/workspaces/${workspaceId}/leave`, {
+    method: 'POST',
+  });
+}
+
+export async function renameWorkspace(workspaceId: string, name: string): Promise<void> {
+  await apiFetch(`/workspaces/${workspaceId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+}

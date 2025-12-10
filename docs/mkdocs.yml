@@ -86,6 +86,8 @@ nav:
     - Commands: reference/commands.md
     - Configuration: reference/cli-config.md
   - Guides:
+    - Workspaces & Teams: guides/workspaces.md
+    - Sharing Results: guides/sharing.md
     - CI/CD Integration: guides/ci-cd.md
     - GitHub Actions: guides/github-actions.md
     - Self-Hosted: guides/self-hosted.md

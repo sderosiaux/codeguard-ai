@@ -51,7 +51,7 @@ export default function RepoCard({ repo }: RepoCardProps) {
 
   const handleRecheck = (e: React.MouseEvent) => {
     e.stopPropagation();
-    recheckMutation.mutate(repo.id);
+    recheckMutation.mutate({ id: repo.id });
   };
 
   const handleDelete = (e: React.MouseEvent) => {
