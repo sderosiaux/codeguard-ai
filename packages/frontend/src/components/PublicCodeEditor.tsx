@@ -75,6 +75,12 @@ export default function PublicCodeEditor({
       md: 'markdown',
       sh: 'shell',
       sql: 'sql',
+      scala: 'scala',
+      sc: 'scala',
+      kt: 'kotlin',
+      kts: 'kotlin',
+      swift: 'swift',
+      dart: 'dart',
     };
     return languageMap[ext || ''] || 'plaintext';
   };
