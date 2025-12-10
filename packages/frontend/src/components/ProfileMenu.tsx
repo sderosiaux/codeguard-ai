@@ -43,7 +43,7 @@ export default function ProfileMenu({ showWorkspace = true }: ProfileMenuProps) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-xl py-2 z-50">
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-xl py-2 z-[100]">
           {/* User info */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="font-medium text-gray-900">{user.name}</div>

@@ -65,8 +65,8 @@ export const workspaceInvites = pgTable('workspace_invites', {
 
 export const repositories = pgTable('repositories', {
   id: serial('id').primaryKey(),
-  // Note: workspace_id is nullable during migration. Will be enforced at app level.
   workspaceId: uuid('workspace_id')
+    .notNull()
     .references(() => workspaces.id, { onDelete: 'cascade' }),
   githubUrl: text('github_url').notNull(),
   name: text('name').notNull(),
