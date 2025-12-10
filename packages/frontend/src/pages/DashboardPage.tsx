@@ -97,7 +97,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 bg-white/70 backdrop-blur-md border-b border-gray-200/50 sticky top-0">
+      <header className="relative z-50 bg-white/70 backdrop-blur-md border-b border-gray-200/50 sticky top-0">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <a href="/app" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
