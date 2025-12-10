@@ -29,13 +29,13 @@ export default function ProfileMenu({ showWorkspace = true }: ProfileMenuProps) 
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="rounded-full hover:ring-2 hover:ring-emerald-500/50 transition-all"
+        className="rounded-full transition-all"
       >
         {user.avatarUrl ? (
           <img
             src={user.avatarUrl}
             alt={user.name}
-            className="w-9 h-9 rounded-full border-2 border-gray-200 hover:border-emerald-400 transition-colors"
+            className="w-9 h-9 rounded-full border-2 border-gray-200 hover:border-emerald-400 transition-colors object-cover"
           />
         ) : (
           <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center border-2 border-gray-200 hover:border-emerald-400 transition-colors">
