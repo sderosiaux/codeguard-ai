@@ -12,13 +12,6 @@ import ProfileMenu from '../components/ProfileMenu';
 import ShareButton from '../components/ShareButton';
 import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
 
-// Check if error message indicates auth/private repo issue
-function isAuthError(errorMessage: string | null | undefined): boolean {
-  if (!errorMessage) return false;
-  const authKeywords = ['authentication', 'username', 'password', 'token', 'private', 'permission', 'denied', 'not found'];
-  return authKeywords.some(keyword => errorMessage.toLowerCase().includes(keyword));
-}
-
 type TabType = 'dashboard' | 'code';
 
 // Parse line range from URL param like "L=10" or "L=10-15"
@@ -113,15 +106,15 @@ export default function RepoBrowserPage() {
   };
 
   const handleTokenSubmit = () => {
-    if (accessToken.trim()) {
-      handleRecheck(accessToken.trim());
-      setShowTokenDialog(false);
-      setAccessToken('');
-    }
+    // Token is optional - submit with token if provided, otherwise without
+    handleRecheck(accessToken.trim() || undefined);
+    setShowTokenDialog(false);
+    setAccessToken('');
   };
 
-  // Show token dialog if repo has auth error
-  const hasAuthError = repo?.status === 'error' && isAuthError(repo?.errorMessage);
+  // Show token option if repo is in error state (any error, not just auth errors)
+  // Private repos can fail with various error messages
+  const hasError = repo?.status === 'error';
 
   // Navigation helpers
   const setSelectedFile = useCallback((file: string | null) => {
@@ -204,19 +197,24 @@ export default function RepoBrowserPage() {
                     {totalIssues} issues found
                   </span>
                 )}
+                {repo.status === 'error' && repo.errorMessage && (
+                  <span className="text-sm text-red-500 max-w-md truncate" title={repo.errorMessage}>
+                    {repo.errorMessage}
+                  </span>
+                )}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <ShareButton repoId={repo.id} />
-            {hasAuthError ? (
+            {hasError ? (
               <Button
                 onClick={() => setShowTokenDialog(true)}
                 disabled={recheckMutation.isPending}
                 className="flex items-center gap-2"
               >
                 <Key className="w-4 h-4" />
-                Provide Token
+                Retry with Token
               </Button>
             ) : (
               <Button
@@ -371,7 +369,7 @@ export default function RepoBrowserPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">GitHub Access Token</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Retry Analysis</h3>
               <button
                 onClick={() => {
                   setShowTokenDialog(false);
@@ -383,14 +381,20 @@ export default function RepoBrowserPage() {
               </button>
             </div>
             <div className="p-6">
+              {repo?.errorMessage && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700 font-medium mb-1">Previous error:</p>
+                  <p className="text-sm text-red-600 font-mono break-all">{repo.errorMessage}</p>
+                </div>
+              )}
               <p className="text-sm text-gray-600 mb-4">
-                This appears to be a private repository. Please provide a GitHub personal access token with <code className="bg-gray-100 px-1 rounded">repo</code> scope to access it.
+                If this is a private repository, provide a GitHub personal access token with <code className="bg-gray-100 px-1 rounded">repo</code> scope. Leave empty for public repositories.
               </p>
               <input
                 type="password"
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
-                placeholder="ghp_xxxxxxxxxxxx"
+                placeholder="ghp_xxxxxxxxxxxx (optional)"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && handleTokenSubmit()}
                 autoFocus
@@ -411,7 +415,7 @@ export default function RepoBrowserPage() {
               </Button>
               <Button
                 onClick={handleTokenSubmit}
-                disabled={!accessToken.trim() || recheckMutation.isPending}
+                disabled={recheckMutation.isPending}
               >
                 {recheckMutation.isPending ? (
                   <>
@@ -419,7 +423,7 @@ export default function RepoBrowserPage() {
                     Analyzing...
                   </>
                 ) : (
-                  'Start Analysis'
+                  'Retry Analysis'
                 )}
               </Button>
             </div>

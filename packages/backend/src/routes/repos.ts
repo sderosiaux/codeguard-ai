@@ -256,7 +256,14 @@ router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
       console.error(`Re-analysis failed for repo ${id}:`, err);
     });
 
-    res.json({ message: 'Re-analysis started' });
+    // Return the updated repository
+    const [updatedRepo] = await db
+      .select()
+      .from(repositories)
+      .where(eq(repositories.id, id))
+      .limit(1);
+
+    res.json(updatedRepo);
   } catch (error) {
     next(error);
   }
