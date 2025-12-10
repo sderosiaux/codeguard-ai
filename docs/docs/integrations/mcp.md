@@ -35,7 +35,7 @@ Before you begin, you'll need:
 The MCP server is available at:
 
 ```
-https://api.codeguard.ai/api/mcp
+https://security-guard-ai.vercel.app/api/mcp
 ```
 
 Or if running locally:
@@ -59,7 +59,7 @@ Add the following to your Claude Desktop configuration file:
   "mcpServers": {
     "codeguard-ai": {
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-remote", "https://api.codeguard.ai/api/mcp"],
+      "args": ["-y", "@anthropic-ai/mcp-remote", "https://security-guard-ai.vercel.app/api/mcp"],
       "env": {
         "MCP_HEADERS": "Authorization: Bearer YOUR_API_TOKEN_HERE"
       }
@@ -78,7 +78,7 @@ In Cursor, you can add the MCP server through the settings:
 2. Navigate to **Features** > **MCP Servers**
 3. Add a new server with:
    - **Name**: CodeGuard AI
-   - **URL**: `https://api.codeguard.ai/api/mcp`
+   - **URL**: `https://security-guard-ai.vercel.app/api/mcp`
    - **Headers**: `Authorization: Bearer YOUR_API_TOKEN`
 
 ## Available Tools
@@ -204,7 +204,7 @@ The MCP server implements JSON-RPC 2.0 over HTTP POST. All requests require Bear
 ### Example Request
 
 ```bash
-curl -X POST https://api.codeguard.ai/api/mcp \
+curl -X POST https://security-guard-ai.vercel.app/api/mcp \
   -H "Authorization: Bearer cg_your_token_here" \
   -H "Content-Type: application/json" \
   -d '{
