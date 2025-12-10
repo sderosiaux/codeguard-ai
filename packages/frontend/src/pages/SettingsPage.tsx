@@ -229,7 +229,7 @@ export default function SettingsPage() {
                   API tokens authenticate requests to the <strong>MCP (Model Context Protocol)</strong> server.
                   Use them to integrate CodeGuard AI with Claude, Cursor, or other MCP-compatible tools.
                 </p>
-                <a href="/docs/mcp" className="text-emerald-600 hover:text-emerald-700 font-medium mt-1 inline-block">
+                <a href="/docs/integrations/mcp/" className="text-emerald-600 hover:text-emerald-700 font-medium mt-1 inline-block">
                   View MCP documentation →
                 </a>
               </div>
