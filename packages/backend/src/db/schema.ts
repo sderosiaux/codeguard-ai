@@ -61,6 +61,24 @@ export const workspaceInvites = pgTable('workspace_invites', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// ==================== API TOKENS ====================
+
+export const apiTokens = pgTable('api_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  tokenHash: text('token_hash').notNull(), // SHA-256 hash of the token
+  tokenPrefix: text('token_prefix').notNull(), // First 8 chars for identification (e.g., "cg_abc123")
+  lastUsedAt: timestamp('last_used_at'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ==================== REPOSITORIES ====================
 
 export const repositories = pgTable('repositories', {
@@ -120,6 +138,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   ownedWorkspaces: many(workspaces),
   workspaceMemberships: many(workspaceMembers),
+  apiTokens: many(apiTokens),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -188,5 +207,17 @@ export const issuesRelations = relations(issues, ({ one }) => ({
   analysisRun: one(analysisRuns, {
     fields: [issues.analysisRunId],
     references: [analysisRuns.id],
+  }),
+}));
+
+// API Token relations
+export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [apiTokens.userId],
+    references: [users.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [apiTokens.workspaceId],
+    references: [workspaces.id],
   }),
 }));

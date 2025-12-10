@@ -10,6 +10,8 @@ import issuesRouter from './routes/issues.js';
 import cliRouter from './routes/cli.js';
 import authRouter from './routes/auth.js';
 import workspacesRouter from './routes/workspaces.js';
+import tokensRouter from './routes/tokens.js';
+import mcpRouter from './routes/mcp.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +37,8 @@ app.use('/api/repos', reposRouter);
 app.use('/api/repos', filesRouter);
 app.use('/api/repos', issuesRouter);
 app.use('/api/cli', cliRouter);
+app.use('/api/tokens', tokensRouter);
+app.use('/api/mcp', mcpRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

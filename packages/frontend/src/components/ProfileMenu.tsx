@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { User, LogOut, Settings, Building2 } from 'lucide-react';
 
@@ -8,6 +9,7 @@ interface ProfileMenuProps {
 
 export default function ProfileMenu({ showWorkspace = true }: ProfileMenuProps) {
   const { user, currentWorkspace, logout } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +79,7 @@ export default function ProfileMenu({ showWorkspace = true }: ProfileMenuProps) 
             <button
               onClick={() => {
                 setIsOpen(false);
-                // Navigate to settings (future)
+                navigate('/app/settings');
               }}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >

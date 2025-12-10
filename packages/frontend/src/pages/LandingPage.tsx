@@ -12,6 +12,8 @@ import {
   FileCode,
   AlertTriangle,
   Code2,
+  Plug,
+  Terminal,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import Header from '../components/Header';
@@ -321,6 +323,102 @@ export default function LandingPage() {
                 Start Scanning Now
                 <ArrowRight className="w-5 h-5" />
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* MCP Integration Section */}
+        <div className="bg-white border-y border-gray-200 py-20">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              {/* Content */}
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium mb-4">
+                  <Plug className="w-4 h-4" />
+                  MCP Integration
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                  Scan code directly from Claude
+                </h2>
+                <p className="text-lg text-gray-500 mb-6">
+                  Connect CodeGuard AI to Claude Desktop, Cursor, or any MCP-compatible tool.
+                  Get real-time security analysis while you code.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    'Analyze code snippets for vulnerabilities instantly',
+                    'Query your repository security issues from chat',
+                    'No context switching — security insights where you work',
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-gray-600">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="/docs/integrations/mcp"
+                  className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+                >
+                  Read the MCP documentation
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+
+              {/* Code Preview */}
+              <div className="relative">
+                <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-white">
+                  {/* Terminal header */}
+                  <div className="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-400" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                      <div className="w-3 h-3 rounded-full bg-green-400" />
+                    </div>
+                    <div className="flex-1 text-center">
+                      <span className="text-xs text-gray-500 font-mono">Claude Desktop — MCP</span>
+                    </div>
+                  </div>
+
+                  {/* Chat content */}
+                  <div className="bg-gray-50 p-5 space-y-4">
+                    {/* User message */}
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                        <span className="text-white text-xs font-medium">U</span>
+                      </div>
+                      <div className="flex-1 bg-white rounded-xl p-3 border border-gray-200 text-sm text-gray-700">
+                        Scan this code for security issues:
+                        <code className="block mt-2 p-2 bg-gray-100 rounded text-xs font-mono text-gray-600">
+                          {`const q = \`SELECT * FROM users WHERE id = \${userId}\``}
+                        </code>
+                      </div>
+                    </div>
+
+                    {/* AI response */}
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shrink-0">
+                        <Shield className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1 bg-white rounded-xl p-3 border border-gray-200 text-sm text-gray-700">
+                        <div className="flex items-center gap-2 text-red-600 font-medium mb-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          Critical: SQL Injection
+                        </div>
+                        <p className="text-gray-600 mb-2">
+                          User input is directly interpolated into the SQL query without sanitization.
+                        </p>
+                        <p className="text-emerald-600 text-xs">
+                          Fix: Use parameterized queries or an ORM.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decorative elements */}
+                <div className="absolute -z-10 -top-4 -right-4 w-72 h-72 bg-emerald-100/50 rounded-full blur-3xl" />
+              </div>
             </div>
           </div>
         </div>

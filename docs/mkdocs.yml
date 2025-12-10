@@ -89,6 +89,8 @@ nav:
     - CI/CD Integration: guides/ci-cd.md
     - GitHub Actions: guides/github-actions.md
     - Self-Hosted: guides/self-hosted.md
+  - Integrations:
+    - MCP Server: integrations/mcp.md
   - Examples:
     - Node.js Project: examples/nodejs.md
     - Python Project: examples/python.md
