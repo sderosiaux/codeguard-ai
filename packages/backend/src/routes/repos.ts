@@ -3,7 +3,7 @@ import { eq, sql, and } from 'drizzle-orm';
 import { db, repositories, issues, repositoryShares } from '../db/index.js';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
-import { cloneRepository, pullRepository } from '../services/github.js';
+import { cloneRepository, pullRepository, sanitizeGitError } from '../services/github.js';
 import { runFullAnalysis } from '../services/analyzer.js';
 import { requireAuth, requireWorkspace, requireWriteAccess } from '../middleware/auth.js';
 import { spikelog } from '../services/spikelog.js';
@@ -342,8 +342,20 @@ async function processRepository(
 
     try {
       if (dirExists) {
-        // Pull latest changes (note: will fail for private repos without stored token)
-        await pullRepository(localPath);
+        try {
+          // Pull latest changes
+          await pullRepository(localPath);
+        } catch (pullError) {
+          // Handle "dubious ownership" or other pull errors by re-cloning
+          const errorMsg = pullError instanceof Error ? pullError.message : '';
+          if (errorMsg.includes('dubious ownership') || errorMsg.includes('fatal:')) {
+            console.log(`Pull failed for ${localPath}, deleting and re-cloning...`);
+            await fs.rm(localPath, { recursive: true, force: true });
+            await cloneRepository(githubUrl, localPath, accessToken);
+          } else {
+            throw pullError;
+          }
+        }
         // Remove old .codeguard folder for fresh analysis
         const codeguardPath = path.join(localPath, '.codeguard');
         try {
@@ -357,7 +369,7 @@ async function processRepository(
       }
     } catch (cloneError) {
       // Track clone failure specifically
-      spikelog.cloneFailure(repoName, cloneError instanceof Error ? cloneError.message : 'Unknown clone error');
+      spikelog.cloneFailure(repoName, sanitizeGitError(cloneError));
       throw cloneError;
     }
 
@@ -407,7 +419,7 @@ async function processRepository(
       .update(repositories)
       .set({
         status: 'error',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorMessage: sanitizeGitError(error),
         updatedAt: new Date(),
       })
       .where(eq(repositories.id, repoId));

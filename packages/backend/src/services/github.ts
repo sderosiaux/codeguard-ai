@@ -1,5 +1,47 @@
 import simpleGit from 'simple-git';
 
+/**
+ * Sanitize error messages for user display.
+ * Removes internal paths, git config suggestions, and other technical details.
+ */
+export function sanitizeGitError(error: Error | unknown): string {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+
+  // Check for specific error patterns and return user-friendly messages
+  if (message.includes('dubious ownership')) {
+    return 'Repository ownership conflict. Will re-clone.';
+  }
+  if (message.includes('Authentication failed') || message.includes('could not read Username')) {
+    return 'Authentication failed. Please provide a valid access token.';
+  }
+  if (message.includes('not found') || message.includes('Repository not found')) {
+    return 'Repository not found. Check the URL or provide an access token for private repos.';
+  }
+  if (message.includes('Permission denied')) {
+    return 'Permission denied. Please provide an access token with repo access.';
+  }
+
+  // Generic sanitization: remove paths and git suggestions
+  let sanitized = message
+    // Remove absolute paths (Unix and Windows)
+    .replace(/['"]?\/[\w\-\.\/]+['"]?/g, '[path]')
+    .replace(/['"]?[A-Z]:\\[\w\-\.\\]+['"]?/g, '[path]')
+    // Remove "To add an exception..." suggestions
+    .replace(/To add an exception[^.]+\./gi, '')
+    // Remove "call: git config..." suggestions
+    .replace(/call:\s*git\s+config[^.]+\.?/gi, '')
+    // Clean up extra whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // If sanitization removed everything meaningful, return generic message
+  if (!sanitized || sanitized.length < 10) {
+    return 'Failed to access repository. Please try again.';
+  }
+
+  return sanitized;
+}
+
 export async function cloneRepository(githubUrl: string, targetPath: string, accessToken?: string): Promise<void> {
   const git = simpleGit();
 
