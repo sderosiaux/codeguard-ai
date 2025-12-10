@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   Code2,
   Plug,
-  Terminal,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import Header from '../components/Header';
