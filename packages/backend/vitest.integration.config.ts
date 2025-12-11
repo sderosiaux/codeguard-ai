@@ -4,17 +4,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts'],
-    exclude: ['src/**/*.integration.test.ts'],
-    testTimeout: 10000,
-  },
-});
-
-// Integration tests config (run separately with --config vitest.integration.config.ts)
-export const integrationConfig = defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
     include: ['src/**/*.integration.test.ts'],
     testTimeout: 300000, // 5 minutes for LLM calls
     pool: 'forks',

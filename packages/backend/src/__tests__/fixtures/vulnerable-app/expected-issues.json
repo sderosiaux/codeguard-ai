@@ -1,0 +1,48 @@
+{
+  "description": "Expected issues for vulnerable-app fixture - used for LLM integration tests",
+  "minimumExpected": [
+    {
+      "id": "sql-injection",
+      "category": "injection",
+      "severity": ["critical", "high"],
+      "filePattern": "api.ts",
+      "descriptionContains": ["SQL", "injection", "concatenation"]
+    },
+    {
+      "id": "command-injection",
+      "category": "injection",
+      "severity": ["critical", "high"],
+      "filePattern": "api.ts",
+      "descriptionContains": ["command", "injection", "exec", "shell"]
+    },
+    {
+      "id": "hardcoded-secret",
+      "category": "secrets",
+      "severity": ["high", "medium"],
+      "filePattern": "api.ts",
+      "descriptionContains": ["secret", "hardcoded", "API_KEY", "credential"]
+    },
+    {
+      "id": "swallowed-exception",
+      "category": "error-handling",
+      "severity": ["high", "medium"],
+      "filePattern": "api.ts",
+      "descriptionContains": ["catch", "swallowed", "empty", "exception", "error"]
+    },
+    {
+      "id": "fire-and-forget",
+      "category": "async",
+      "severity": ["high", "medium"],
+      "filePattern": "api.ts",
+      "descriptionContains": ["await", "fire", "forget", "async", "unhandled"]
+    },
+    {
+      "id": "race-condition",
+      "category": "race-condition",
+      "severity": ["high", "medium", "critical"],
+      "filePattern": "api.ts",
+      "descriptionContains": ["race", "condition", "check-then-act", "balance", "concurrent"]
+    }
+  ],
+  "notes": "LLM may find additional issues or use different wording. Tests check that core issues are detected."
+}
