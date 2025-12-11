@@ -61,11 +61,20 @@ export interface FileNode {
   children?: FileNode[];
 }
 
+export type IssueType =
+  | 'security'
+  | 'reliability'
+  | 'kafka'
+  | 'database'
+  | 'distributed'
+  | 'concurrency'
+  | 'resilience';
+
 export interface Issue {
   id: number;
   repositoryId: number;
   analysisRunId: number;
-  type: 'security' | 'reliability';
+  type: IssueType;
   issueId: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
   category: string;

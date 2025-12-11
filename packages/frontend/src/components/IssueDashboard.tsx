@@ -12,9 +12,15 @@ import {
   LucideIcon,
   Search,
   X,
+  Database,
+  Network,
+  GitBranch,
+  MessageSquare,
+  Heart,
+  Layers,
 } from 'lucide-react';
 import StatsOverview from './StatsOverview';
-import type { Issue, FileIssues } from '../lib/api';
+import type { Issue, FileIssues, IssueType } from '../lib/api';
 
 interface IssueDashboardProps {
   issues: Issue[];
@@ -54,19 +60,53 @@ const categoryToParentGroup: Record<string, string> = {
   'Data Protection': 'Security',
   'Access Control': 'Security',
   'Security': 'Security',
-  // Reliability
-  'Error Handling': 'Reliability',
-  'Resource Management': 'Reliability',
-  'Async Operations': 'Reliability',
-  'Exception Handling': 'Reliability',
-  'Fault Tolerance': 'Reliability',
-  'Data Integrity': 'Reliability',
-  // Performance
+  'injection': 'Security',
+  'auth': 'Security',
+  'crypto': 'Security',
+  'secrets': 'Security',
+  'validation': 'Security',
+  // Resilience (error handling, retries, etc.)
+  'Error Handling': 'Resilience',
+  'Resource Management': 'Resilience',
+  'Async Operations': 'Resilience',
+  'Exception Handling': 'Resilience',
+  'Fault Tolerance': 'Resilience',
+  'error-handling': 'Resilience',
+  'retry': 'Resilience',
+  'timeout': 'Resilience',
+  'resource-leak': 'Resilience',
+  'shutdown': 'Resilience',
+  // Concurrency
+  'Concurrency': 'Concurrency',
+  'race-condition': 'Concurrency',
+  'deadlock': 'Concurrency',
+  'visibility': 'Concurrency',
+  'atomicity': 'Concurrency',
+  'async': 'Concurrency',
+  // Kafka
+  'consumer': 'Kafka',
+  'producer': 'Kafka',
+  'config': 'Kafka',
+  'streams': 'Kafka',
+  'connect': 'Kafka',
+  'schema': 'Kafka',
+  // Database
+  'query': 'Database',
+  'pool': 'Database',
+  'transaction': 'Database',
+  'index': 'Database',
+  'Data Integrity': 'Database',
+  // Distributed Systems
+  'time': 'Distributed',
+  'idempotency': 'Distributed',
+  'consensus': 'Distributed',
+  'replication': 'Distributed',
+  'messaging': 'Distributed',
+  // Performance (legacy)
   'Performance': 'Performance',
   'Scalability': 'Performance',
   'Caching': 'Performance',
   'Memory Management': 'Performance',
-  'Concurrency': 'Performance',
   // Code Quality
   'Code Quality': 'Code Quality',
   'Testing': 'Code Quality',
@@ -78,9 +118,14 @@ const categoryToParentGroup: Record<string, string> = {
 
 const parentGroupConfig: Record<string, { icon: LucideIcon; color: string; bgColor: string }> = {
   'Security': { icon: Shield, color: 'text-red-600', bgColor: 'bg-red-50' },
-  'Reliability': { icon: Zap, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-  'Performance': { icon: Gauge, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
-  'Code Quality': { icon: Code2, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  'Reliability': { icon: Zap, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+  'Resilience': { icon: Heart, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+  'Concurrency': { icon: GitBranch, color: 'text-amber-600', bgColor: 'bg-amber-50' },
+  'Kafka': { icon: MessageSquare, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  'Database': { icon: Database, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  'Distributed': { icon: Network, color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  'Performance': { icon: Gauge, color: 'text-lime-600', bgColor: 'bg-lime-50' },
+  'Code Quality': { icon: Code2, color: 'text-gray-600', bgColor: 'bg-gray-50' },
 };
 
 const severityColors: Record<string, string> = {
@@ -95,9 +140,9 @@ export default function IssueDashboard({
   issuesByFile,
   onNavigateToFile,
 }: IssueDashboardProps) {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Security', 'Reliability', 'Performance', 'Code Quality']));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Security', 'Resilience', 'Concurrency', 'Kafka', 'Database', 'Distributed', 'Performance', 'Code Quality']));
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [selectedType, setSelectedType] = useState<'all' | 'security' | 'reliability'>('all');
+  const [selectedType, setSelectedType] = useState<'all' | IssueType>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -133,7 +178,15 @@ export default function IssueDashboard({
 
   const stats = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
-    const byType = { security: 0, reliability: 0 };
+    const byType: Record<IssueType, number> = {
+      security: 0,
+      reliability: 0,
+      kafka: 0,
+      database: 0,
+      distributed: 0,
+      concurrency: 0,
+      resilience: 0,
+    };
     const byCategory: Record<string, CategoryGroup> = {};
 
     for (const issue of filteredIssues) {
@@ -242,29 +295,40 @@ export default function IssueDashboard({
       />
 
       {/* Type Filter, Search & Clear */}
-      <div className="flex items-center gap-4">
-        <div className="flex bg-white rounded-lg border border-gray-200 p-1">
-          {(['all', 'security', 'reliability'] as const).map((type) => (
-            <button
-              key={type}
-              onClick={() => setSelectedType(type)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
-                selectedType === type
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {type === 'security' && <Shield className="w-4 h-4" />}
-              {type === 'reliability' && <Zap className="w-4 h-4" />}
-              {type === 'all' && <AlertTriangle className="w-4 h-4" />}
-              <span className="capitalize">{type}</span>
-              <span className={`ml-1 px-1.5 py-0.5 rounded text-xs ${
-                selectedType === type ? 'bg-white/20' : 'bg-gray-100'
-              }`}>
-                {type === 'all' ? totalIssues : stats.byType[type]}
-              </span>
-            </button>
-          ))}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-wrap bg-white rounded-lg border border-gray-200 p-1 gap-1">
+          {([
+            { type: 'all' as const, icon: Layers, label: 'All' },
+            { type: 'security' as const, icon: Shield, label: 'Security' },
+            { type: 'reliability' as const, icon: Zap, label: 'Reliability' },
+            { type: 'resilience' as const, icon: Heart, label: 'Resilience' },
+            { type: 'concurrency' as const, icon: GitBranch, label: 'Concurrency' },
+            { type: 'kafka' as const, icon: MessageSquare, label: 'Kafka' },
+            { type: 'database' as const, icon: Database, label: 'Database' },
+            { type: 'distributed' as const, icon: Network, label: 'Distributed' },
+          ]).map(({ type, icon: Icon, label }) => {
+            const count = type === 'all' ? totalIssues : stats.byType[type as IssueType];
+            if (type !== 'all' && count === 0) return null;
+            return (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
+                  selectedType === type
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
+                <span className={`ml-0.5 px-1.5 py-0.5 rounded text-xs ${
+                  selectedType === type ? 'bg-white/20' : 'bg-gray-100'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search Input */}

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db, analysisRuns, issues } from '../db/index.js';
 import { generateOrchestratorPrompt, AgentDefinition } from '../prompts/combined.js';
 import { parseReportFile } from './parser.js';
+import { postProcessReports, writeUnifiedReport, ProcessedIssue, IssueType } from './postProcessor.js';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -93,7 +94,7 @@ export async function runAnalysis(
 async function processReport(
   repositoryId: number,
   repoPath: string,
-  type: 'security' | 'reliability',
+  type: IssueType,
   reportFileName: string
 ): Promise<void> {
   const reportPath = path.join(repoPath, '.codeguard', reportFileName);
@@ -196,22 +197,57 @@ export async function runFullAnalysis(repositoryId: number, repoPath: string): P
   // Run orchestrator (spawns all agents in parallel)
   await runAnalysis(repoPath, prompt, 'orchestrator');
 
-  // Map agent IDs to analysis types for database storage
-  // Security agent → 'security' type, all others → 'reliability' type
-  const agentTypeMapping: Record<string, 'security' | 'reliability'> = {
-    'security': 'security',
-    'resilience': 'reliability',
-    'concurrency': 'reliability',
-    'kafka': 'reliability',
-    'database': 'reliability',
-    'distributed': 'reliability',
-  };
+  // Post-process: deduplicate and categorize all issues
+  console.log('Post-processing agent reports...');
+  const processedIssues = await postProcessReports(repoPath);
 
-  // Process reports from all agents
-  for (const agent of agents) {
-    const reportFile = agent.outputFile.split('/').pop()!;
-    const analysisType = agentTypeMapping[agent.id] || 'reliability';
-    await processReport(repositoryId, repoPath, analysisType, reportFile);
+  // Filter out test files
+  const productionIssues = processedIssues.filter(
+    issue => !isTestFile(issue.file_path)
+  );
+
+  const filteredCount = processedIssues.length - productionIssues.length;
+  if (filteredCount > 0) {
+    console.log(`Filtered out ${filteredCount} issues from test files`);
+  }
+
+  // Write unified report for debugging/reference
+  await writeUnifiedReport(repoPath, productionIssues);
+
+  // Create a single analysis run for the full analysis
+  if (productionIssues.length > 0) {
+    const [analysisRun] = await db
+      .insert(analysisRuns)
+      .values({
+        repositoryId,
+        type: 'full',
+        status: 'completed',
+        startedAt: new Date(),
+        completedAt: new Date(),
+      })
+      .returning();
+
+    // Insert all issues with their assigned types
+    const issueValues = productionIssues.map((issue, index) => ({
+      repositoryId,
+      analysisRunId: analysisRun.id,
+      type: issue.type,
+      issueId: issue.id || `ISSUE-${index + 1}`,
+      severity: issue.severity,
+      category: issue.category,
+      title: issue.title,
+      description: issue.description,
+      filePath: issue.file_path || null,
+      lineStart: issue.line_start || null,
+      lineEnd: issue.line_end || null,
+      codeSnippet: issue.code_snippet || null,
+      remediation: issue.remediation || null,
+    }));
+
+    await db.insert(issues).values(issueValues);
+    console.log(`Inserted ${issueValues.length} issues for repository ${repositoryId}`);
+  } else {
+    console.log('No production issues found');
   }
 
   console.log(`Full analysis completed for repository ${repositoryId}`);

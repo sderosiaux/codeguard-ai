@@ -91,6 +91,52 @@ export const colors = {
     cyan: '#06b6d4',
     amber: '#f59e0b',
   },
+
+  // Issue Type Colors (matches agent specializations)
+  issueType: {
+    security: {
+      bg: '#fef2f2',
+      border: '#fecaca',
+      text: '#991b1b',
+      solid: '#ef4444',
+    },
+    reliability: {
+      bg: '#fefce8',
+      border: '#fef08a',
+      text: '#854d0e',
+      solid: '#eab308',
+    },
+    resilience: {
+      bg: '#fff7ed',
+      border: '#fed7aa',
+      text: '#9a3412',
+      solid: '#f97316',
+    },
+    concurrency: {
+      bg: '#fffbeb',
+      border: '#fde68a',
+      text: '#92400e',
+      solid: '#f59e0b',
+    },
+    kafka: {
+      bg: '#faf5ff',
+      border: '#e9d5ff',
+      text: '#6b21a8',
+      solid: '#a855f7',
+    },
+    database: {
+      bg: '#eff6ff',
+      border: '#bfdbfe',
+      text: '#1e40af',
+      solid: '#3b82f6',
+    },
+    distributed: {
+      bg: '#ecfeff',
+      border: '#a5f3fc',
+      text: '#155e75',
+      solid: '#06b6d4',
+    },
+  },
 };
 
 // ============================================
