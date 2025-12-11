@@ -213,6 +213,41 @@ export async function fetchIssuesByFile(repoId: string): Promise<FileIssues[]> {
   return response.json();
 }
 
+// Analysis history types and functions
+export type AnalysisTrigger = 'initial' | 'recheck' | 'api' | 'scheduled';
+
+export interface AnalysisRun {
+  id: number;
+  type: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  commitSha: string | null;
+  triggeredBy: AnalysisTrigger | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  durationSeconds: number | null;
+  errorMessage: string | null;
+  createdAt: string;
+  issueCounts: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+}
+
+export interface AnalysisHistory {
+  runs: AnalysisRun[];
+  githubUrl: string;
+  owner: string;
+  name: string;
+}
+
+export async function fetchAnalysisHistory(repoId: string | number): Promise<AnalysisHistory> {
+  const response = await authFetch(`${API_BASE}/repos/${repoId}/history`);
+  if (!response.ok) throw new Error('Failed to fetch analysis history');
+  return response.json();
+}
+
 // Share management types and functions
 export interface RepositoryShare {
   id: string;

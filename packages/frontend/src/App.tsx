@@ -81,6 +81,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/app/repos/:owner/:name/history"
+          element={
+            <ProtectedRoute>
+              <RepoBrowserPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/app/settings"
           element={
             <ProtectedRoute>

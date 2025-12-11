@@ -118,6 +118,9 @@ export const repositories = pgTable('repositories', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Trigger source for analysis runs
+export type AnalysisTrigger = 'initial' | 'recheck' | 'api' | 'scheduled';
+
 export const analysisRuns = pgTable('analysis_runs', {
   id: serial('id').primaryKey(),
   repositoryId: integer('repository_id')
@@ -125,6 +128,8 @@ export const analysisRuns = pgTable('analysis_runs', {
     .references(() => repositories.id, { onDelete: 'cascade' }),
   type: text('type').notNull(), // security, reliability, full
   status: text('status').notNull().default('pending'), // pending, running, completed, error
+  commitSha: text('commit_sha'), // Git commit SHA that was analyzed
+  triggeredBy: text('triggered_by').$type<AnalysisTrigger>().default('initial'), // How the analysis was triggered
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
   errorMessage: text('error_message'),

@@ -1,12 +1,28 @@
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { eq } from 'drizzle-orm';
 import { db, analysisRuns, issues } from '../db/index.js';
 import { generateOrchestratorPrompt, AgentDefinition } from '../prompts/combined.js';
 import { parseReportFile } from './parser.js';
 import { postProcessReports, writeUnifiedReport, ProcessedIssue, IssueType } from './postProcessor.js';
-import type { AnalysisStage, AgentProgress } from '../db/schema.js';
+import type { AnalysisStage, AgentProgress, AnalysisTrigger } from '../db/schema.js';
 import path from 'path';
 import fs from 'fs/promises';
+
+/**
+ * Get the current HEAD commit SHA from a git repository
+ */
+export function getCommitSha(repoPath: string): string | null {
+  try {
+    const sha = execSync('git rev-parse HEAD', {
+      cwd: repoPath,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    return sha || null;
+  } catch {
+    return null;
+  }
+}
 
 // Progress callback type for real-time updates
 export interface AnalysisProgressUpdate {
@@ -188,10 +204,16 @@ async function processReport(
   }
 }
 
+export interface AnalysisOptions {
+  commitSha?: string | null;
+  triggeredBy?: AnalysisTrigger;
+}
+
 export async function runFullAnalysis(
   repositoryId: number,
   repoPath: string,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  options?: AnalysisOptions
 ): Promise<void> {
   console.log(`Starting full analysis for repository ${repositoryId} at ${repoPath}`);
 
@@ -258,20 +280,22 @@ export async function runFullAnalysis(
   // Write unified report for debugging/reference
   await writeUnifiedReport(repoPath, productionIssues);
 
-  // Create a single analysis run for the full analysis
-  if (productionIssues.length > 0) {
-    const [analysisRun] = await db
-      .insert(analysisRuns)
-      .values({
-        repositoryId,
-        type: 'full',
-        status: 'completed',
-        startedAt: new Date(),
-        completedAt: new Date(),
-      })
-      .returning();
+  // Always create an analysis run record (even with 0 issues for history tracking)
+  const [analysisRun] = await db
+    .insert(analysisRuns)
+    .values({
+      repositoryId,
+      type: 'full',
+      status: 'completed',
+      commitSha: options?.commitSha || null,
+      triggeredBy: options?.triggeredBy || 'initial',
+      startedAt: new Date(),
+      completedAt: new Date(),
+    })
+    .returning();
 
-    // Insert all issues with their assigned types
+  // Insert all issues with their assigned types
+  if (productionIssues.length > 0) {
     const issueValues = productionIssues.map((issue, index) => ({
       repositoryId,
       analysisRunId: analysisRun.id,
@@ -291,7 +315,7 @@ export async function runFullAnalysis(
     await db.insert(issues).values(issueValues);
     console.log(`Inserted ${issueValues.length} issues for repository ${repositoryId}`);
   } else {
-    console.log('No production issues found');
+    console.log('No production issues found (analysis run recorded)');
   }
 
   // Stage 4: Completed

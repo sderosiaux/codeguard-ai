@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X } from 'lucide-react';
-import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo, useRepoStatus } from '../hooks/useApi';
+import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X, History } from 'lucide-react';
+import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo, useRepoStatus, useAnalysisHistory } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import Resizer from '../components/ui/Resizer';
@@ -9,11 +9,12 @@ import FileTree from '../components/FileTree';
 import CodeEditor from '../components/CodeEditor';
 import IssueDashboard from '../components/IssueDashboard';
 import AnalysisProgress from '../components/AnalysisProgress';
+import AnalysisHistory from '../components/AnalysisHistory';
 import ProfileMenu from '../components/ProfileMenu';
 import ShareButton from '../components/ShareButton';
 import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
 
-type TabType = 'dashboard' | 'code';
+type TabType = 'dashboard' | 'code' | 'history';
 
 // Parse line range from URL param like "L=10" or "L=10-15"
 function parseLineRange(param: string | null): { start: number; end: number } | null {
@@ -33,7 +34,8 @@ export default function RepoBrowserPage() {
 
   // Derive activeTab and selectedFile from URL
   const isCodeRoute = location.pathname.includes('/code');
-  const activeTab: TabType = isCodeRoute ? 'code' : 'dashboard';
+  const isHistoryRoute = location.pathname.includes('/history');
+  const activeTab: TabType = isCodeRoute ? 'code' : isHistoryRoute ? 'history' : 'dashboard';
   const selectedFile = isCodeRoute && filePath ? decodeURIComponent(filePath) : null;
 
   // Parse line range from URL
@@ -77,6 +79,7 @@ export default function RepoBrowserPage() {
   const { data: files } = useFiles(repoId);
   const { data: issues } = useIssues(repoId);
   const { data: issuesByFile } = useIssuesByFile(repoId);
+  const { data: analysisHistory, isLoading: historyLoading } = useAnalysisHistory(repoId);
   const recheckMutation = useRecheckRepo();
 
   // Transform issuesByFile array to map for FileTree component
@@ -258,6 +261,17 @@ export default function RepoBrowserPage() {
               <Code className="w-4 h-4" />
               Code Browser
             </button>
+            <button
+              onClick={() => navigate(`/app/repos/${owner}/${name}/history`)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
+                activeTab === 'history'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              History
+            </button>
           </div>
         )}
       </div>
@@ -289,6 +303,13 @@ export default function RepoBrowserPage() {
               <div className="text-gray-500">No issues found</div>
             </div>
           )
+        ) : activeTab === 'history' ? (
+          <AnalysisHistory
+            runs={analysisHistory?.runs || []}
+            owner={owner || ''}
+            name={name || ''}
+            isLoading={historyLoading}
+          />
         ) : (
           <>
             {/* File Tree Sidebar */}

@@ -103,6 +103,15 @@ export function useDeleteRepo() {
   });
 }
 
+// Analysis history hook
+export function useAnalysisHistory(repoId: string | number | undefined) {
+  return useQuery({
+    queryKey: ['analysisHistory', repoId],
+    queryFn: () => api.fetchAnalysisHistory(repoId!),
+    enabled: !!repoId,
+  });
+}
+
 // Share management hooks
 export function useRepoShares(repoId: string | number | undefined) {
   return useQuery({
