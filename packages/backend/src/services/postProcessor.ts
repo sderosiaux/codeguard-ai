@@ -1,6 +1,43 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+/**
+ * Normalize file path to be relative to repo root.
+ * Strips absolute paths like /opt/codeguard-ai/repos/workspace-id/owner-name/...
+ */
+function normalizeFilePath(filePath: string | null | undefined, repoPath: string): string | null {
+  if (!filePath) return null;
+
+  // If path is already relative (doesn't start with /), return as-is
+  if (!filePath.startsWith('/')) {
+    return filePath;
+  }
+
+  // Check if the path contains the repo path prefix
+  const normalizedRepoPath = repoPath.endsWith('/') ? repoPath : repoPath + '/';
+  if (filePath.startsWith(normalizedRepoPath)) {
+    return filePath.slice(normalizedRepoPath.length);
+  }
+
+  // Alternative: try to find common repo path patterns and strip them
+  // Pattern: /opt/codeguard-ai/repos/workspace-id/owner-name/actual/path
+  const repoPathMatch = filePath.match(/\/opt\/codeguard-ai\/repos\/[^/]+\/[^/]+\/(.+)/);
+  if (repoPathMatch) {
+    return repoPathMatch[1];
+  }
+
+  // Also handle local development paths
+  const localMatch = filePath.match(/\/repos\/[^/]+\/[^/]+\/(.+)/);
+  if (localMatch) {
+    return localMatch[1];
+  }
+
+  // Fallback: if path is absolute but doesn't match known patterns,
+  // just return the filename portion as last resort
+  console.warn(`Could not normalize path: ${filePath}`);
+  return path.basename(filePath);
+}
+
 // Issue types matching specialized agents
 export type IssueType = 'security' | 'resilience' | 'concurrency' | 'kafka' | 'database' | 'distributed';
 
@@ -223,11 +260,12 @@ export async function postProcessReports(repoPath: string): Promise<ProcessedIss
       const type = determineType(issue.category, report.agent);
       const processedIssue: ProcessedIssue = {
         ...issue,
+        file_path: normalizeFilePath(issue.file_path, repoPath),
         type,
         sourceAgent: report.agent,
       };
 
-      const key = getIssueKey(issue);
+      const key = getIssueKey(processedIssue);
       const existing = issueMap.get(key);
 
       if (existing) {
