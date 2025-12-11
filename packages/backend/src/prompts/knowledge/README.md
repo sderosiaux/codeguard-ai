@@ -1,55 +1,140 @@
-# Knowledge Base - Distributed Systems & Database Anti-Patterns
+# Knowledge Base - Code Analysis Anti-Patterns
 
-This knowledge base contains patterns and anti-patterns for LLM one-shot training, organized by category.
+This knowledge base contains patterns and anti-patterns for LLM-powered code analysis, organized by category.
+
+## Multi-Agent Architecture
+
+The analysis system uses **specialized sub-agents** to prevent context pollution between domains:
+
+```
+                    ┌─────────────────────────────────────┐
+                    │         ORCHESTRATOR                │
+                    │   (detects stack, spawns agents)    │
+                    └─────────────────┬───────────────────┘
+                                      │
+          ┌───────────────────────────┼───────────────────────────┐
+          │                           │                           │
+          ▼                           ▼                           ▼
+┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐
+│   TIER 1        │        │   TIER 1        │        │   TIER 1        │
+│   (Always)      │        │   (Always)      │        │   (Always)      │
+├─────────────────┤        ├─────────────────┤        ├─────────────────┤
+│ Security        │        │ Resilience      │        │ Concurrency     │
+│ Auditor         │        │ Auditor         │        │ Auditor         │
+│                 │        │                 │        │                 │
+│ - security.md   │        │ - error-        │        │ - concurrency-  │
+│                 │        │   handling.md   │        │   bugs.md       │
+│                 │        │ - retries-      │        │ - race-         │
+│                 │        │   resilience.md │        │   conditions.md │
+│                 │        │ - partial-      │        │ - antithesis-   │
+│                 │        │   failures.md   │        │   glossary.md   │
+└─────────────────┘        └─────────────────┘        └─────────────────┘
+          │                           │                           │
+          ▼                           ▼                           ▼
+  security-report.json     resilience-report.json    concurrency-report.json
+
+
+          ┌───────────────────────────┼───────────────────────────┐
+          │                           │                           │
+          ▼                           ▼                           ▼
+┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐
+│   TIER 2        │        │   TIER 2        │        │   TIER 2        │
+│   (Stack-based) │        │   (Stack-based) │        │   (Stack-based) │
+├─────────────────┤        ├─────────────────┤        ├─────────────────┤
+│ Kafka           │        │ Database        │        │ Distributed     │
+│ Specialist      │        │ Specialist      │        │ Systems         │
+│                 │        │                 │        │                 │
+│ - 12 kafka/*.md │        │ - connection-   │        │ - time-clocks   │
+│   files         │        │   pools.md      │        │ - idempotency   │
+│                 │        │ - sql-anti.md   │        │ - consensus     │
+│                 │        │ - schema.md     │        │ - replication   │
+│                 │        │ - isolation.md  │        │ - messaging     │
+└─────────────────┘        └─────────────────┘        └─────────────────┘
+          │                           │                           │
+          ▼                           ▼                           ▼
+  kafka-report.json        database-report.json      distributed-report.json
+```
+
+### Why Multi-Agent?
+
+- **No Context Pollution**: Kafka knowledge doesn't interfere with SQL analysis
+- **Focused Expertise**: Each agent is a domain specialist
+- **Parallel Execution**: All agents run simultaneously
+- **Isolated Output**: Each agent writes its own report
 
 ## Structure
 
 ```
 knowledge/
-├── distributed-systems/
-│   ├── race-conditions.md          (843 lines) - Race conditions, write skew, check-then-act
-│   ├── isolation-consistency.md    (343 lines) - Lost updates, write skew, read skew
-│   ├── time-clocks.md              (1146 lines) - Clock drift, timestamps, timeouts
-│   ├── retries-resilience.md       (724 lines) - Retry storms, thundering herd, backoff
-│   ├── idempotency.md              (656 lines) - Duplicate effects, idempotency keys
-│   ├── partial-failures.md         (1021 lines) - Network partitions, split brain
-│   ├── consensus-coordination.md   (852 lines) - Raft, Paxos, leader election bugs
-│   ├── replication-storage.md      (1513 lines) - Multi-leader, CRDTs, eventual consistency
-│   └── messaging-queues.md         (1199 lines) - Message ordering, delivery guarantees
+├── security.md                      (top-level security patterns)
+├── reliability.md                   (general reliability patterns)
+├── error-handling.md                (swallowed exceptions, resource leaks)
+├── concurrency-bugs.md              (deadlocks, race conditions)
+├── antithesis-glossary.md           (formal anomaly codes P0-P4)
 │
-└── database/
-    ├── connection-pools.md         (573 lines) - Pool leaks, sizing, lifecycle
-    ├── sql-antipatterns.md         (1277 lines) - N+1, indexes, query optimization
-    └── schema-design.md            (514 lines) - God tables, EAV, normalization
+├── kafka/                           (12 files, 17,115 lines)
+│   ├── consumer-antipatterns.md     - Poll loop, rebalance, commit timing
+│   ├── producer-antipatterns.md     - Acks, idempotence, batching
+│   ├── topics-partitions-antipatterns.md
+│   ├── offset-commit-antipatterns.md
+│   ├── dlq-antipatterns.md          - Dead letter queue patterns
+│   ├── streams-antipatterns.md      - Repartitioning, state stores
+│   ├── connect-antipatterns.md      - JDBC, SMT, error tolerance
+│   ├── schema-registry-antipatterns.md
+│   ├── retry-resilience-antipatterns.md
+│   ├── monitoring-antipatterns.md   - Consumer lag, ISR, JMX
+│   ├── cluster-dr-antipatterns.md   - MirrorMaker2, failover
+│   └── ordering-scalability-antipatterns.md
+│
+├── distributed-systems/             (9 files)
+│   ├── race-conditions.md           - Write skew, check-then-act
+│   ├── isolation-consistency.md     - Lost updates, read skew
+│   ├── time-clocks.md               - Clock drift, timestamps
+│   ├── retries-resilience.md        - Retry storms, backoff
+│   ├── idempotency.md               - Duplicate effects
+│   ├── partial-failures.md          - Network partitions, split brain
+│   ├── consensus-coordination.md    - Raft, Paxos, leader election
+│   ├── replication-storage.md       - Multi-leader, CRDTs
+│   └── messaging-queues.md          - Message ordering, delivery
+│
+└── database/                        (3 files)
+    ├── connection-pools.md          - Pool leaks, sizing
+    ├── sql-antipatterns.md          - N+1, indexes, SELECT *
+    └── schema-design.md             - God tables, EAV
 
-Total: 12 files, 10,661 lines
+Total: ~28 files, ~28,000 lines
 ```
 
-## Pattern Categories
+## Agent Configuration
 
-### Distributed Systems (9 files)
+| Agent | Tier | Activates When | Knowledge Files | Token Estimate |
+|-------|------|----------------|-----------------|----------------|
+| Security Auditor | Always | All repos | 1 | ~4,000 |
+| Resilience Auditor | Always | All repos | 3 | ~14,000 |
+| Concurrency Auditor | Always | All repos | 3 | ~18,000 |
+| Kafka Specialist | Stack-based | Kafka imports detected | 12 | ~62,000 |
+| Database Specialist | Stack-based | SQL/ORM detected | 4 | ~13,000 |
+| Distributed Systems | Stack-based | Distributed patterns | 5 | ~16,000 |
 
-| File | Key Patterns |
-|------|-------------|
-| `race-conditions.md` | Write Skew, UPSERT races, Lost Update, Check-Then-Act, Read-Modify-Write |
-| `isolation-consistency.md` | Lost Update (P4), Write Skew (A5B), Read Skew (A5A), Snapshot Isolation |
-| `time-clocks.md` | Wall Clock Reliance, Clock Skew, NTP Assumptions, Timeout Expiration |
-| `retries-resilience.md` | Retry Storm, Thundering Herd, Exponential Backoff, Circuit Breaker |
-| `idempotency.md` | Non-Idempotent Mutations, Double Processing, Missing Backoff, Response Caching |
-| `partial-failures.md` | Split-Brain, Asymmetric Failures, Unsafe Locking, Saga Pattern |
-| `consensus-coordination.md` | Split-Brain, Missing fsync, Term Persistence Bug, Dueling Proposers |
-| `replication-storage.md` | Last-Write-Wins, Read-After-Write, CRDT Overhead, Replication Lag |
-| `messaging-queues.md` | Message Ordering, Visibility Timeout, Dead Letter Queues, Idempotent Handlers |
+## Stack Detection
 
-### Database (3 files)
+The system automatically detects the tech stack by scanning:
 
-| File | Key Patterns |
-|------|-------------|
-| `connection-pools.md` | Connection Leak, Pool Sizing, Transaction Handling, Leak Detection |
-| `sql-antipatterns.md` | N+1 Queries, Missing Indexes, Over-Indexing, SELECT *, Type Conversion |
-| `schema-design.md` | God Table, Missing PK, Over-Normalization, EAV Pattern, Polymorphic Associations |
+### Kafka Detection
+- File patterns: `**/kafka/**/*`, `**/confluent/**/*`
+- Imports: `kafkajs`, `org.apache.kafka`, `confluent_kafka`
+- Code patterns: `KafkaProducer`, `commitSync`, `consumer.poll`
 
-## Usage for LLM Training
+### Database Detection
+- File patterns: `**/migrations/**/*`, `**/db/**/*`
+- Imports: `psycopg2`, `sqlalchemy`, `drizzle-orm`, `prisma`
+- Code patterns: `SELECT`, `INSERT`, `JOIN`, `getConnection`
+
+### Distributed Systems Detection
+- Imports: `raft`, `paxos`, `zookeeper`, `etcd`
+- Code patterns: `acquire_lock`, `leader_election`, `System.currentTimeMillis`
+
+## Pattern Format
 
 Each file follows a consistent structure for one-shot training:
 
@@ -71,24 +156,28 @@ Each file follows a consistent structure for one-shot training:
 **Key Takeaway:** Actionable summary
 ```
 
-## Code Languages Covered
+## Languages Covered
 
 - **Python** - Most examples
-- **Java** - Connection pools, concurrency
+- **Java** - Kafka, connection pools, concurrency
 - **Go** - Connection pools, concurrency
-- **JavaScript/TypeScript** - API patterns
+- **JavaScript/TypeScript** - API patterns, Node.js Kafka
 - **SQL** - Database anti-patterns
-- **Rust** - Message passing, ownership
-- **C#** - Retry patterns
+- **Scala** - Kafka Streams
+- **Rust** - Message passing
+
+## Planned Features
+
+- **Database Query Plan Analysis**: Query `EXPLAIN ANALYZE` from the database and feed the execution plan to the LLM alongside the code for deeper performance insights
 
 ## Sources
 
-Content extracted from 70+ authoritative sources including:
+Content extracted from 130+ authoritative sources including:
 - Jepsen.io (consistency models)
 - Martin Kleppmann's blog and lectures
 - AWS Builders Library
+- Confluent documentation and blogs
+- Apache Kafka KIPs
 - CockroachDB documentation
 - Stripe Engineering Blog
 - Azure Architecture patterns
-- LMAX Disruptor whitepaper
-- Stack Overflow canonical answers

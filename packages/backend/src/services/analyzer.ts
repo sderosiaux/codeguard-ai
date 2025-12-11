@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { eq } from 'drizzle-orm';
 import { db, analysisRuns, issues } from '../db/index.js';
-import { combinedAnalysisPrompt } from '../prompts/combined.js';
+import { generateOrchestratorPrompt, AgentDefinition } from '../prompts/combined.js';
 import { parseReportFile } from './parser.js';
 import path from 'path';
 import fs from 'fs/promises';
@@ -184,12 +184,35 @@ export async function runFullAnalysis(repositoryId: number, repoPath: string): P
   const codeguardDir = path.join(repoPath, '.codeguard');
   await fs.mkdir(codeguardDir, { recursive: true });
 
-  // Run combined analysis (security + reliability in parallel via Claude agents)
-  await runAnalysis(repoPath, combinedAnalysisPrompt, 'combined');
+  // Generate orchestrator prompt with specialized agents
+  const { prompt, agents, tieredResult, tokenEstimate } = await generateOrchestratorPrompt(repoPath);
 
-  // Process both reports
-  await processReport(repositoryId, repoPath, 'security', 'security-report.json');
-  await processReport(repositoryId, repoPath, 'reliability', 'reliability-report.json');
+  // Log which agents will run
+  console.log(`Detected stack: ${Array.from(tieredResult.detectedStack.types).join(', ') || 'Generic'}`);
+  console.log(`Spawning ${agents.length} specialized agents:`);
+  agents.forEach(a => console.log(`  - ${a.name} (${a.tier}) → ${a.outputFile}`));
+  console.log(`Estimated tokens: ~${tokenEstimate.toLocaleString()}`);
+
+  // Run orchestrator (spawns all agents in parallel)
+  await runAnalysis(repoPath, prompt, 'orchestrator');
+
+  // Map agent IDs to analysis types for database storage
+  // Security agent → 'security' type, all others → 'reliability' type
+  const agentTypeMapping: Record<string, 'security' | 'reliability'> = {
+    'security': 'security',
+    'resilience': 'reliability',
+    'concurrency': 'reliability',
+    'kafka': 'reliability',
+    'database': 'reliability',
+    'distributed': 'reliability',
+  };
+
+  // Process reports from all agents
+  for (const agent of agents) {
+    const reportFile = agent.outputFile.split('/').pop()!;
+    const analysisType = agentTypeMapping[agent.id] || 'reliability';
+    await processReport(repositoryId, repoPath, analysisType, reportFile);
+  }
 
   console.log(`Full analysis completed for repository ${repositoryId}`);
 }
