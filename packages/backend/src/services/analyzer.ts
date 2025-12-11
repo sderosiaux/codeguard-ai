@@ -207,6 +207,7 @@ async function processReport(
 export interface AnalysisOptions {
   commitSha?: string | null;
   triggeredBy?: AnalysisTrigger;
+  triggeredByUserId?: string | null;
 }
 
 export async function runFullAnalysis(
@@ -214,8 +215,11 @@ export async function runFullAnalysis(
   repoPath: string,
   onProgress?: ProgressCallback,
   options?: AnalysisOptions
-): Promise<void> {
+): Promise<number> {
   console.log(`Starting full analysis for repository ${repositoryId} at ${repoPath}`);
+
+  // Capture start time for accurate duration tracking
+  const analysisStartTime = new Date();
 
   // Create .codeguard directory if it doesn't exist
   const codeguardDir = path.join(repoPath, '.codeguard');
@@ -232,6 +236,20 @@ export async function runFullAnalysis(
   console.log(`Detected stack: ${detectedStack.join(', ') || 'Generic'}`);
   console.log(`Spawning ${agents.length} specialized agents:`);
   agents.forEach(a => console.log(`  - ${a.name} (${a.tier}) → ${a.outputFile}`));
+
+  // Create analysis run record at START for accurate duration tracking
+  const [analysisRun] = await db
+    .insert(analysisRuns)
+    .values({
+      repositoryId,
+      type: 'full',
+      status: 'running',
+      commitSha: options?.commitSha || null,
+      triggeredBy: options?.triggeredBy || 'initial',
+      triggeredByUserId: options?.triggeredByUserId || null,
+      startedAt: analysisStartTime,
+    })
+    .returning();
 
   // Stage 2: Running agents
   const agentProgress: AgentProgress[] = agents.map(a => ({
@@ -280,20 +298,6 @@ export async function runFullAnalysis(
   // Write unified report for debugging/reference
   await writeUnifiedReport(repoPath, productionIssues);
 
-  // Always create an analysis run record (even with 0 issues for history tracking)
-  const [analysisRun] = await db
-    .insert(analysisRuns)
-    .values({
-      repositoryId,
-      type: 'full',
-      status: 'completed',
-      commitSha: options?.commitSha || null,
-      triggeredBy: options?.triggeredBy || 'initial',
-      startedAt: new Date(),
-      completedAt: new Date(),
-    })
-    .returning();
-
   // Insert all issues with their assigned types
   if (productionIssues.length > 0) {
     const issueValues = productionIssues.map((issue, index) => ({
@@ -318,6 +322,15 @@ export async function runFullAnalysis(
     console.log('No production issues found (analysis run recorded)');
   }
 
+  // Update analysis run as completed with accurate end time
+  await db
+    .update(analysisRuns)
+    .set({
+      status: 'completed',
+      completedAt: new Date(),
+    })
+    .where(eq(analysisRuns.id, analysisRun.id));
+
   // Stage 4: Completed
   await onProgress?.({
     stage: 'completed',
@@ -326,5 +339,7 @@ export async function runFullAnalysis(
   });
 
   console.log(`Full analysis completed for repository ${repositoryId}`);
+
+  return analysisRun.id;
 }
 

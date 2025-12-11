@@ -1,4 +1,4 @@
-import { Clock, GitCommit, Play, RefreshCw, Zap, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { Clock, GitCommit, Play, RefreshCw, Zap, CheckCircle2, XCircle, ExternalLink, User } from 'lucide-react';
 import type { AnalysisRun, AnalysisTrigger } from '../lib/api';
 
 interface AnalysisHistoryProps {
@@ -188,10 +188,22 @@ export default function AnalysisHistory({ runs, owner, name, isLoading }: Analys
 
                     {/* Triggered By */}
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${triggerInfo.color}`}>
-                        <TriggerIcon className="w-3 h-3" />
-                        {triggerInfo.label}
-                      </span>
+                      {run.triggeredByUserName ? (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium text-gray-700 bg-gray-100">
+                            <User className="w-3 h-3" />
+                            {run.triggeredByUserName}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            ({triggerInfo.label.toLowerCase()})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${triggerInfo.color}`}>
+                          <TriggerIcon className="w-3 h-3" />
+                          {triggerInfo.label}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

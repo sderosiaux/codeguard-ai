@@ -130,6 +130,7 @@ export const analysisRuns = pgTable('analysis_runs', {
   status: text('status').notNull().default('pending'), // pending, running, completed, error
   commitSha: text('commit_sha'), // Git commit SHA that was analyzed
   triggeredBy: text('triggered_by').$type<AnalysisTrigger>().default('initial'), // How the analysis was triggered
+  triggeredByUserId: uuid('triggered_by_user_id').references(() => users.id, { onDelete: 'set null' }), // User who triggered the analysis
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
   errorMessage: text('error_message'),
@@ -249,6 +250,10 @@ export const analysisRunsRelations = relations(analysisRuns, ({ one, many }) => 
   repository: one(repositories, {
     fields: [analysisRuns.repositoryId],
     references: [repositories.id],
+  }),
+  triggeredByUser: one(users, {
+    fields: [analysisRuns.triggeredByUserId],
+    references: [users.id],
   }),
   issues: many(issues),
 }));

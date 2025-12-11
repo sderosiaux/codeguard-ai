@@ -222,6 +222,7 @@ export interface AnalysisRun {
   status: 'pending' | 'running' | 'completed' | 'error';
   commitSha: string | null;
   triggeredBy: AnalysisTrigger | null;
+  triggeredByUserName: string | null;
   startedAt: string | null;
   completedAt: string | null;
   durationSeconds: number | null;

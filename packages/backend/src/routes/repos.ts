@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { eq, sql, and } from 'drizzle-orm';
-import { db, repositories, issues, repositoryShares, analysisRuns } from '../db/index.js';
+import { db, repositories, issues, repositoryShares, analysisRuns, users } from '../db/index.js';
 import type { AnalysisStage, AgentProgress } from '../db/schema.js';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
@@ -151,7 +151,7 @@ router.post('/', requireWriteAccess, async (req, res, next) => {
       .returning();
 
     // Start background process to clone and analyze
-    processRepository(repo.id, req.workspaceId!, githubUrl, owner, name, body.accessToken, 'initial').catch((err) => {
+    processRepository(repo.id, req.workspaceId!, githubUrl, owner, name, body.accessToken, 'initial', req.user!.id).catch((err) => {
       console.error(`Background processing failed for repo ${repo.id}:`, err);
     });
 
@@ -301,10 +301,24 @@ router.get('/:id/history', async (req, res, next) => {
       return res.status(404).json({ error: 'Repository not found' });
     }
 
-    // Get all analysis runs for this repo
+    // Get all analysis runs for this repo with user info
     const runs = await db
-      .select()
+      .select({
+        id: analysisRuns.id,
+        repositoryId: analysisRuns.repositoryId,
+        type: analysisRuns.type,
+        status: analysisRuns.status,
+        commitSha: analysisRuns.commitSha,
+        triggeredBy: analysisRuns.triggeredBy,
+        triggeredByUserId: analysisRuns.triggeredByUserId,
+        startedAt: analysisRuns.startedAt,
+        completedAt: analysisRuns.completedAt,
+        errorMessage: analysisRuns.errorMessage,
+        createdAt: analysisRuns.createdAt,
+        triggeredByUserName: users.name,
+      })
       .from(analysisRuns)
+      .leftJoin(users, eq(analysisRuns.triggeredByUserId, users.id))
       .where(eq(analysisRuns.repositoryId, id))
       .orderBy(sql`${analysisRuns.createdAt} DESC`);
 
@@ -337,6 +351,7 @@ router.get('/:id/history', async (req, res, next) => {
       status: run.status,
       commitSha: run.commitSha,
       triggeredBy: run.triggeredBy,
+      triggeredByUserName: run.triggeredByUserName || null,
       startedAt: run.startedAt,
       completedAt: run.completedAt,
       durationSeconds: run.startedAt && run.completedAt
@@ -392,7 +407,7 @@ router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
       .where(eq(repositories.id, id));
 
     // Start background re-analysis with optional token
-    processRepository(id, repo.workspaceId, repo.githubUrl, repo.owner, repo.name, accessToken, 'recheck').catch((err) => {
+    processRepository(id, repo.workspaceId, repo.githubUrl, repo.owner, repo.name, accessToken, 'recheck', req.user!.id).catch((err) => {
       console.error(`Re-analysis failed for repo ${id}:`, err);
     });
 
@@ -453,7 +468,8 @@ async function processRepository(
   owner: string,
   name: string,
   accessToken?: string,
-  triggeredBy: AnalysisTrigger = 'initial'
+  triggeredBy: AnalysisTrigger = 'initial',
+  triggeredByUserId?: string
 ): Promise<void> {
   const repoName = `${owner}/${name}`;
   const startTime = Date.now();
@@ -551,7 +567,7 @@ async function processRepository(
       async (update: AnalysisProgressUpdate) => {
         await updateAnalysisProgress(repoId, update.stage, update.agentProgress);
       },
-      { commitSha, triggeredBy }
+      { commitSha, triggeredBy, triggeredByUserId }
     );
 
     // Get issue count for tracking
