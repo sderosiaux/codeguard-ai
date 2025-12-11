@@ -4,8 +4,18 @@ import { db, analysisRuns, issues } from '../db/index.js';
 import { generateOrchestratorPrompt, AgentDefinition } from '../prompts/combined.js';
 import { parseReportFile } from './parser.js';
 import { postProcessReports, writeUnifiedReport, ProcessedIssue, IssueType } from './postProcessor.js';
+import type { AnalysisStage, AgentProgress } from '../db/schema.js';
 import path from 'path';
 import fs from 'fs/promises';
+
+// Progress callback type for real-time updates
+export interface AnalysisProgressUpdate {
+  stage: AnalysisStage;
+  agentProgress?: AgentProgress[];
+  detectedStack?: string[];
+}
+
+export type ProgressCallback = (update: AnalysisProgressUpdate) => Promise<void>;
 
 // Patterns to identify test files (filter out issues from these)
 const TEST_DIR_PATTERNS = /[/\\](test|tests|__tests__|__test__|spec|specs|__mocks__|__fixtures__|fixtures)[/\\]/i;
@@ -178,25 +188,60 @@ async function processReport(
   }
 }
 
-export async function runFullAnalysis(repositoryId: number, repoPath: string): Promise<void> {
+export async function runFullAnalysis(
+  repositoryId: number,
+  repoPath: string,
+  onProgress?: ProgressCallback
+): Promise<void> {
   console.log(`Starting full analysis for repository ${repositoryId} at ${repoPath}`);
 
   // Create .codeguard directory if it doesn't exist
   const codeguardDir = path.join(repoPath, '.codeguard');
   await fs.mkdir(codeguardDir, { recursive: true });
 
+  // Stage 1: Detecting tech stack
+  await onProgress?.({ stage: 'detecting' });
+
   // Generate orchestrator prompt with specialized agents
   const { prompt, agents, tieredResult } = await generateOrchestratorPrompt(repoPath);
+  const detectedStack = Array.from(tieredResult.detectedStack.types);
 
   // Log which agents will run
-  console.log(`Detected stack: ${Array.from(tieredResult.detectedStack.types).join(', ') || 'Generic'}`);
+  console.log(`Detected stack: ${detectedStack.join(', ') || 'Generic'}`);
   console.log(`Spawning ${agents.length} specialized agents:`);
   agents.forEach(a => console.log(`  - ${a.name} (${a.tier}) → ${a.outputFile}`));
+
+  // Stage 2: Running agents
+  const agentProgress: AgentProgress[] = agents.map(a => ({
+    id: a.id,
+    name: a.name,
+    status: 'running' as const,
+    startedAt: new Date().toISOString(),
+  }));
+
+  await onProgress?.({
+    stage: 'analyzing',
+    agentProgress,
+    detectedStack,
+  });
 
   // Run orchestrator (spawns all agents in parallel)
   await runAnalysis(repoPath, prompt, 'orchestrator');
 
-  // Post-process: deduplicate and categorize all issues
+  // Stage 3: Post-processing
+  // Mark all agents as completed (since Claude finished)
+  const completedAgentProgress = agentProgress.map(a => ({
+    ...a,
+    status: 'completed' as const,
+    completedAt: new Date().toISOString(),
+  }));
+
+  await onProgress?.({
+    stage: 'processing',
+    agentProgress: completedAgentProgress,
+    detectedStack,
+  });
+
   console.log('Post-processing agent reports...');
   const processedIssues = await postProcessReports(repoPath);
 
@@ -248,6 +293,13 @@ export async function runFullAnalysis(repositoryId: number, repoPath: string): P
   } else {
     console.log('No production issues found');
   }
+
+  // Stage 4: Completed
+  await onProgress?.({
+    stage: 'completed',
+    agentProgress: completedAgentProgress,
+    detectedStack,
+  });
 
   console.log(`Full analysis completed for repository ${repositoryId}`);
 }

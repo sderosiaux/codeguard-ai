@@ -28,6 +28,15 @@ export function useRepoByName(owner: string | undefined, name: string | undefine
   });
 }
 
+export function useRepoStatus(repoId: string | number | undefined, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['repoStatus', repoId],
+    queryFn: () => api.fetchRepoStatus(repoId!),
+    enabled: !!repoId && enabled,
+    refetchInterval: 2000, // Poll every 2 seconds for live progress
+  });
+}
+
 export function useFiles(repoId: string | undefined) {
   return useQuery({
     queryKey: ['files', repoId],

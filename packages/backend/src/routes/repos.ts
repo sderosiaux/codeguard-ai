@@ -1,14 +1,31 @@
 import { Router } from 'express';
 import { eq, sql, and } from 'drizzle-orm';
 import { db, repositories, issues, repositoryShares } from '../db/index.js';
+import type { AnalysisStage, AgentProgress } from '../db/schema.js';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { cloneRepository, pullRepository, sanitizeGitError } from '../services/github.js';
-import { runFullAnalysis } from '../services/analyzer.js';
+import { runFullAnalysis, type AnalysisProgressUpdate } from '../services/analyzer.js';
 import { requireAuth, requireWorkspace, requireWriteAccess } from '../middleware/auth.js';
 import { spikelog } from '../services/spikelog.js';
 import path from 'path';
 import fs from 'fs/promises';
+
+// Helper to update analysis progress in database
+async function updateAnalysisProgress(
+  repoId: number,
+  stage: AnalysisStage,
+  agentProgress?: AgentProgress[]
+): Promise<void> {
+  await db
+    .update(repositories)
+    .set({
+      analysisStage: stage,
+      agentProgress: agentProgress || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(repositories.id, repoId));
+}
 
 const router = Router();
 
@@ -128,6 +145,7 @@ router.post('/', requireWriteAccess, async (req, res, next) => {
         name,
         owner,
         status: 'pending',
+        analysisStage: 'queued',
       })
       .returning();
 
@@ -220,6 +238,44 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
+// GET /:id/status - Get analysis status with progress details
+router.get('/:id/status', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid repository ID' });
+    }
+
+    const [repo] = await db
+      .select({
+        id: repositories.id,
+        status: repositories.status,
+        analysisStage: repositories.analysisStage,
+        agentProgress: repositories.agentProgress,
+        errorMessage: repositories.errorMessage,
+        updatedAt: repositories.updatedAt,
+      })
+      .from(repositories)
+      .where(eq(repositories.id, id))
+      .limit(1);
+
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+
+    res.json({
+      id: repo.id,
+      status: repo.status,
+      analysisStage: repo.analysisStage,
+      agentProgress: repo.agentProgress,
+      errorMessage: repo.errorMessage,
+      updatedAt: repo.updatedAt,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /:id/recheck - Trigger re-analysis (requires write access)
 router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
   try {
@@ -246,6 +302,8 @@ router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
       .update(repositories)
       .set({
         status: 'pending',
+        analysisStage: 'queued',
+        agentProgress: null,
         errorMessage: null,
         updatedAt: new Date(),
       })
@@ -321,10 +379,15 @@ async function processRepository(
     // Delete old issues before re-analyzing
     await db.delete(issues).where(eq(issues.repositoryId, repoId));
 
-    // Update status to cloning
+    // Update status to cloning with stage tracking
     await db
       .update(repositories)
-      .set({ status: 'cloning', updatedAt: new Date() })
+      .set({
+        status: 'cloning',
+        analysisStage: 'cloning',
+        agentProgress: null,
+        updatedAt: new Date(),
+      })
       .where(eq(repositories.id, repoId));
 
     // Clone or pull repository
@@ -389,13 +452,16 @@ async function processRepository(
       .update(repositories)
       .set({
         status: 'analyzing',
+        analysisStage: 'detecting',
         localPath,
         updatedAt: new Date(),
       })
       .where(eq(repositories.id, repoId));
 
-    // Run analysis
-    await runFullAnalysis(repoId, localPath);
+    // Run analysis with progress callback
+    await runFullAnalysis(repoId, localPath, async (update: AnalysisProgressUpdate) => {
+      await updateAnalysisProgress(repoId, update.stage, update.agentProgress);
+    });
 
     // Get issue count for tracking
     const [issueCount] = await db
@@ -408,6 +474,8 @@ async function processRepository(
       .update(repositories)
       .set({
         status: 'completed',
+        analysisStage: 'completed',
+        agentProgress: null, // Clear agent progress on completion
         updatedAt: new Date(),
       })
       .where(eq(repositories.id, repoId));
@@ -430,6 +498,8 @@ async function processRepository(
       .update(repositories)
       .set({
         status: 'error',
+        analysisStage: 'error',
+        agentProgress: null,
         errorMessage: sanitizeGitError(error),
         updatedAt: new Date(),
       })

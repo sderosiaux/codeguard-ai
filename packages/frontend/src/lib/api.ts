@@ -35,6 +35,25 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
   return response;
 }
 
+// Analysis stage for detailed progress tracking
+export type AnalysisStage =
+  | 'queued'
+  | 'cloning'
+  | 'detecting'
+  | 'analyzing'
+  | 'processing'
+  | 'completed'
+  | 'error';
+
+// Agent progress tracking
+export interface AgentProgress {
+  id: string;
+  name: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  startedAt?: string;
+  completedAt?: string;
+}
+
 export interface Repository {
   id: number;
   workspaceId: string;
@@ -42,6 +61,8 @@ export interface Repository {
   owner: string;
   name: string;
   status: 'pending' | 'cloning' | 'analyzing' | 'completed' | 'failed' | 'error';
+  analysisStage?: AnalysisStage | null;
+  agentProgress?: AgentProgress[] | null;
   errorMessage?: string | null;
   localPath?: string | null;
   createdAt: string;
@@ -52,6 +73,16 @@ export interface Repository {
     medium: number;
     low: number;
   };
+}
+
+// Analysis status response (lightweight, for polling)
+export interface AnalysisStatus {
+  id: number;
+  status: Repository['status'];
+  analysisStage: AnalysisStage | null;
+  agentProgress: AgentProgress[] | null;
+  errorMessage: string | null;
+  updatedAt: string;
 }
 
 export interface FileNode {
@@ -113,6 +144,12 @@ export async function fetchRepo(id: string): Promise<Repository> {
 export async function fetchRepoByName(owner: string, name: string): Promise<Repository> {
   const response = await authFetch(`${API_BASE}/repos/by-name/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`);
   if (!response.ok) throw new Error('Failed to fetch repository');
+  return response.json();
+}
+
+export async function fetchRepoStatus(id: string | number): Promise<AnalysisStatus> {
+  const response = await authFetch(`${API_BASE}/repos/${id}/status`);
+  if (!response.ok) throw new Error('Failed to fetch repository status');
   return response.json();
 }
 

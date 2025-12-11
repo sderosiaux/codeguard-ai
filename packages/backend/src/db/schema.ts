@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, boolean, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, timestamp, boolean, uuid, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ==================== AUTH ====================
@@ -81,6 +81,25 @@ export const apiTokens = pgTable('api_tokens', {
 
 // ==================== REPOSITORIES ====================
 
+// Analysis stage enum for detailed progress tracking
+export type AnalysisStage =
+  | 'queued'
+  | 'cloning'
+  | 'detecting'    // Detecting tech stack
+  | 'analyzing'    // Running agents
+  | 'processing'   // Post-processing reports
+  | 'completed'
+  | 'error';
+
+// Agent progress tracking
+export interface AgentProgress {
+  id: string;
+  name: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  startedAt?: string;
+  completedAt?: string;
+}
+
 export const repositories = pgTable('repositories', {
   id: serial('id').primaryKey(),
   workspaceId: uuid('workspace_id')
@@ -91,6 +110,8 @@ export const repositories = pgTable('repositories', {
   owner: text('owner').notNull(),
   defaultBranch: text('default_branch').default('main'),
   status: text('status').notNull().default('pending'), // pending, cloning, analyzing, completed, error
+  analysisStage: text('analysis_stage').$type<AnalysisStage>(), // Detailed progress stage
+  agentProgress: jsonb('agent_progress').$type<AgentProgress[]>(), // Which agents are running/done
   errorMessage: text('error_message'),
   localPath: text('local_path'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

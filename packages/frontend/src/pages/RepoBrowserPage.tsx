@@ -1,13 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X } from 'lucide-react';
-import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo } from '../hooks/useApi';
+import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo, useRepoStatus } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import Resizer from '../components/ui/Resizer';
 import FileTree from '../components/FileTree';
 import CodeEditor from '../components/CodeEditor';
 import IssueDashboard from '../components/IssueDashboard';
+import AnalysisProgress from '../components/AnalysisProgress';
 import ProfileMenu from '../components/ProfileMenu';
 import ShareButton from '../components/ShareButton';
 import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
@@ -71,6 +72,8 @@ export default function RepoBrowserPage() {
 
   const { data: repo, isLoading: repoLoading } = useRepoByName(owner, name);
   const repoId = repo?.id ? String(repo.id) : undefined;
+  const isAnalyzingStatus = repo?.status === 'analyzing' || repo?.status === 'cloning' || repo?.status === 'pending';
+  const { data: repoStatus } = useRepoStatus(repoId, isAnalyzingStatus);
   const { data: files } = useFiles(repoId);
   const { data: issues } = useIssues(repoId);
   const { data: issuesByFile } = useIssuesByFile(repoId);
@@ -230,36 +233,51 @@ export default function RepoBrowserPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-          <button
-            onClick={() => navigate(`/app/repos/${owner}/${name}`)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
-              activeTab === 'dashboard'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            Dashboard
-          </button>
-          <button
-            onClick={() => navigate(`/app/repos/${owner}/${name}/code`)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
-              activeTab === 'code'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Code className="w-4 h-4" />
-            Code Browser
-          </button>
-        </div>
+        {/* Tabs - hidden when analyzing */}
+        {!isAnalyzing && repo.status !== 'error' && (
+          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+            <button
+              onClick={() => navigate(`/app/repos/${owner}/${name}`)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
+                activeTab === 'dashboard'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate(`/app/repos/${owner}/${name}/code`)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
+                activeTab === 'code'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Code className="w-4 h-4" />
+              Code Browser
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {activeTab === 'dashboard' ? (
+        {/* Show progress overlay when analyzing */}
+        {isAnalyzing ? (
+          <AnalysisProgress
+            stage={repoStatus?.analysisStage || repo.analysisStage}
+            agentProgress={repoStatus?.agentProgress || repo.agentProgress}
+            errorMessage={repo.errorMessage}
+          />
+        ) : repo.status === 'error' ? (
+          <AnalysisProgress
+            stage="error"
+            agentProgress={null}
+            errorMessage={repo.errorMessage}
+          />
+        ) : activeTab === 'dashboard' ? (
           issues && issuesByFile ? (
             <IssueDashboard
               issues={issues}
@@ -268,16 +286,7 @@ export default function RepoBrowserPage() {
             />
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-gray-500">
-                {isAnalyzing ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Analysis in progress...
-                  </div>
-                ) : (
-                  'No issues found'
-                )}
-              </div>
+              <div className="text-gray-500">No issues found</div>
             </div>
           )
         ) : (
