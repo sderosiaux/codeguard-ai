@@ -1,17 +1,23 @@
-import { securityPrompt } from './security.js';
-import { reliabilityPrompt } from './reliability.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Extract just the task content from each prompt (remove the "Begin now" instruction)
-const securityTaskContent = securityPrompt.replace(/Begin your analysis now.*$/s, '').trim();
-const reliabilityTaskContent = reliabilityPrompt.replace(/Begin your analysis now.*$/s, '').trim();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-export const combinedAnalysisPrompt = `You are a code analysis expert performing both SECURITY and RELIABILITY audits of this codebase.
+// Read markdown knowledge files (from src folder, not dist)
+// Go up from dist/prompts to project root, then into src/prompts/knowledge
+const knowledgeDir = path.join(__dirname, '..', '..', 'src', 'prompts', 'knowledge');
+const securityKnowledge = fs.readFileSync(path.join(knowledgeDir, 'security.md'), 'utf-8');
+const reliabilityKnowledge = fs.readFileSync(path.join(knowledgeDir, 'reliability.md'), 'utf-8');
 
-## CRITICAL: Execution Strategy
+export const combinedAnalysisPrompt = `You are a code analysis expert. Your task is to perform both **Security** and **Reliability** audits of this codebase simultaneously.
 
-You MUST use the Task tool to spawn TWO parallel agents that will run simultaneously:
-1. **Security Agent** - Analyzes vulnerabilities, writes to \`.codeguard/security-report.json\`
-2. **Reliability Agent** - Analyzes code quality, writes to \`.codeguard/reliability-report.json\`
+## Execution Strategy
+
+You MUST spawn TWO parallel agents to analyze the codebase concurrently:
+1. **Security Agent** - Analyzes for vulnerabilities → writes \`.codeguard/security-report.json\`
+2. **Reliability Agent** - Analyzes for code quality issues → writes \`.codeguard/reliability-report.json\`
 
 ## Setup
 
@@ -22,33 +28,43 @@ mkdir -p .codeguard
 
 ## Parallel Execution
 
-Spawn BOTH agents in a SINGLE message with TWO Task tool calls. This runs them in parallel.
+Spawn BOTH agents in a **SINGLE message** with **TWO Task tool calls**. This runs them in parallel.
 
-### Security Agent
+---
 
-Spawn with subagent_type="Explore" and this prompt:
+### Agent 1: Security Analysis
 
-\`\`\`
-${securityTaskContent}
-
-Begin your analysis now and write the results to .codeguard/security-report.json.
-\`\`\`
-
-### Reliability Agent
-
-Spawn with subagent_type="Explore" and this prompt:
+Use Task tool with subagent_type="Explore" and this prompt:
 
 \`\`\`
-${reliabilityTaskContent}
+${securityKnowledge}
 
-Begin your analysis now and write the results to .codeguard/reliability-report.json.
+Begin your analysis now and write results to .codeguard/security-report.json
 \`\`\`
 
-## Execution Steps
+---
 
-1. Run \`mkdir -p .codeguard\`
-2. Spawn BOTH agents in parallel (TWO Task tool calls in ONE message)
-3. Wait for both to complete
-4. Verify both JSON files exist
+### Agent 2: Reliability Analysis
+
+Use Task tool with subagent_type="Explore" and this prompt:
+
+\`\`\`
+${reliabilityKnowledge}
+
+Begin your analysis now and write results to .codeguard/reliability-report.json
+\`\`\`
+
+---
+
+## Completion
+
+After both agents complete:
+1. Verify \`.codeguard/security-report.json\` exists
+2. Verify \`.codeguard/reliability-report.json\` exists
+3. Report completion
 
 Begin now.`;
+
+// Export individual prompts for standalone use
+export const securityPrompt = securityKnowledge + '\n\nBegin your analysis now and write results to .codeguard/security-report.json';
+export const reliabilityPrompt = reliabilityKnowledge + '\n\nBegin your analysis now and write results to .codeguard/reliability-report.json';
