@@ -10,6 +10,27 @@ const knowledgeDir = path.join(__dirname, '..', '..', 'src', 'prompts', 'knowled
 const securityPath = path.join(knowledgeDir, 'security.md');
 const reliabilityPath = path.join(knowledgeDir, 'reliability.md');
 
+// Extended knowledge base (from project root /knowledge)
+const extendedKnowledgeDir = path.join(__dirname, '..', '..', '..', '..', 'knowledge');
+const distributedSystemsDir = path.join(extendedKnowledgeDir, 'distributed-systems');
+const databaseDir = path.join(extendedKnowledgeDir, 'database');
+
+// Distributed Systems patterns
+const raceConditionsPath = path.join(distributedSystemsDir, 'race-conditions.md');
+const isolationConsistencyPath = path.join(distributedSystemsDir, 'isolation-consistency.md');
+const timeClocksPath = path.join(distributedSystemsDir, 'time-clocks.md');
+const retriesResiliencePath = path.join(distributedSystemsDir, 'retries-resilience.md');
+const idempotencyPath = path.join(distributedSystemsDir, 'idempotency.md');
+const partialFailuresPath = path.join(distributedSystemsDir, 'partial-failures.md');
+const consensusCoordinationPath = path.join(distributedSystemsDir, 'consensus-coordination.md');
+const replicationStoragePath = path.join(distributedSystemsDir, 'replication-storage.md');
+const messagingQueuesPath = path.join(distributedSystemsDir, 'messaging-queues.md');
+
+// Database patterns
+const connectionPoolsPath = path.join(databaseDir, 'connection-pools.md');
+const sqlAntipatternsPath = path.join(databaseDir, 'sql-antipatterns.md');
+const schemaDesignPath = path.join(databaseDir, 'schema-design.md');
+
 // Master prompt with absolute paths injected
 export const combinedAnalysisPrompt = `# Code Analysis
 
@@ -31,6 +52,19 @@ Spawn TWO parallel agents in a SINGLE message:
 
 ### Agent 2: Reliability
 - Read \`${reliabilityPath}\` for detailed instructions and examples
+- **Extended Knowledge Base** - Read these files for deeper pattern matching:
+  - \`${raceConditionsPath}\` - Race conditions, write skew, check-then-act
+  - \`${isolationConsistencyPath}\` - Lost updates, write skew, read skew
+  - \`${timeClocksPath}\` - Clock drift, timestamps, timeouts
+  - \`${retriesResiliencePath}\` - Retry storms, thundering herd, backoff
+  - \`${idempotencyPath}\` - Duplicate effects, idempotency keys
+  - \`${partialFailuresPath}\` - Network partitions, split brain
+  - \`${consensusCoordinationPath}\` - Raft/Paxos bugs, leader election
+  - \`${replicationStoragePath}\` - Multi-leader, CRDTs, eventual consistency
+  - \`${messagingQueuesPath}\` - Message ordering, delivery guarantees
+  - \`${connectionPoolsPath}\` - Pool leaks, sizing, lifecycle
+  - \`${sqlAntipatternsPath}\` - N+1, indexes, query optimization
+  - \`${schemaDesignPath}\` - God tables, EAV, normalization
 - Write findings to \`.codeguard/reliability-report.json\`
 
 ## Begin
@@ -44,3 +78,39 @@ Spawn TWO parallel agents in a SINGLE message:
 // Export individual prompts for standalone use
 export const securityPrompt = fs.readFileSync(securityPath, 'utf-8');
 export const reliabilityPrompt = fs.readFileSync(reliabilityPath, 'utf-8');
+
+// Export extended knowledge paths for agents to read
+export const extendedKnowledgePaths = {
+  distributedSystems: {
+    raceConditions: raceConditionsPath,
+    isolationConsistency: isolationConsistencyPath,
+    timeClocks: timeClocksPath,
+    retriesResilience: retriesResiliencePath,
+    idempotency: idempotencyPath,
+    partialFailures: partialFailuresPath,
+    consensusCoordination: consensusCoordinationPath,
+    replicationStorage: replicationStoragePath,
+    messagingQueues: messagingQueuesPath,
+  },
+  database: {
+    connectionPools: connectionPoolsPath,
+    sqlAntipatterns: sqlAntipatternsPath,
+    schemaDesign: schemaDesignPath,
+  },
+};
+
+// Export all paths as a flat array for easy iteration
+export const allExtendedKnowledgePaths = [
+  raceConditionsPath,
+  isolationConsistencyPath,
+  timeClocksPath,
+  retriesResiliencePath,
+  idempotencyPath,
+  partialFailuresPath,
+  consensusCoordinationPath,
+  replicationStoragePath,
+  messagingQueuesPath,
+  connectionPoolsPath,
+  sqlAntipatternsPath,
+  schemaDesignPath,
+];
