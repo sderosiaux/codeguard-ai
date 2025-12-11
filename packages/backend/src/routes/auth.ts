@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import { db } from '../db/index.js';
 import { users, sessions, workspaces, workspaceMembers, workspaceInvites } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike } from 'drizzle-orm';
 import { spikelog } from '../services/spikelog.js';
 
 const router = Router();
@@ -144,25 +144,6 @@ router.get('/google/callback', async (req, res) => {
           userId: user.id,
           role: 'owner',
         });
-
-        // Process pending workspace invitations for this user
-        const pendingInvites = await db
-          .select()
-          .from(workspaceInvites)
-          .where(eq(workspaceInvites.email, email.toLowerCase()));
-
-        for (const invite of pendingInvites) {
-          // Only process non-expired invitations
-          if (invite.expiresAt > new Date()) {
-            await db.insert(workspaceMembers).values({
-              workspaceId: invite.workspaceId,
-              userId: user.id,
-              role: invite.role,
-            });
-          }
-          // Delete the invitation regardless of expiration
-          await db.delete(workspaceInvites).where(eq(workspaceInvites.id, invite.id));
-        }
       }
     } else {
       // Update user info
@@ -171,6 +152,35 @@ router.get('/google/callback', async (req, res) => {
         .set({ avatarUrl: picture, name: name || user.name, updatedAt: new Date() })
         .where(eq(users.id, user.id))
         .returning();
+    }
+
+    // Process pending workspace invitations for this user (case-insensitive)
+    const pendingInvites = await db
+      .select()
+      .from(workspaceInvites)
+      .where(ilike(workspaceInvites.email, email));
+
+    for (const invite of pendingInvites) {
+      // Check if user is already a member (avoid duplicates)
+      const [existingMember] = await db
+        .select()
+        .from(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, invite.workspaceId),
+            eq(workspaceMembers.userId, user.id)
+          )
+        );
+
+      if (!existingMember && invite.expiresAt > new Date()) {
+        await db.insert(workspaceMembers).values({
+          workspaceId: invite.workspaceId,
+          userId: user.id,
+          role: invite.role,
+        });
+      }
+      // Delete the invitation regardless
+      await db.delete(workspaceInvites).where(eq(workspaceInvites.id, invite.id));
     }
 
     // Create session

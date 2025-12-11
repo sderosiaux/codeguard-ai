@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db/index.js';
 import { workspaces, workspaceMembers, workspaceInvites, users } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike } from 'drizzle-orm';
 import { requireAuth, requireWorkspace, requireWorkspaceAdmin, requireWorkspaceOwner } from '../middleware/auth.js';
 
 const router = Router();
@@ -197,8 +197,8 @@ router.post('/:id/invite', requireAuth, requireWorkspace, requireWorkspaceAdmin,
   }
 
   try {
-    // Check if user is already a member
-    const [existingUser] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+    // Check if user is already a member (case-insensitive email match)
+    const [existingUser] = await db.select().from(users).where(ilike(users.email, email));
 
     if (existingUser) {
       const [existingMember] = await db
