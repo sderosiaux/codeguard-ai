@@ -4,8 +4,8 @@ import { fileURLToPath } from 'url';
 import {
   getTieredKnowledge,
   knowledgePaths,
-} from './tieredKnowledge';
-import type { TieredKnowledgeResult } from './tieredKnowledge';
+} from './tieredKnowledge.js';
+import type { TieredKnowledgeResult } from './tieredKnowledge.js';
 import {
   tier1Agents,
   tier2Agents,
@@ -13,7 +13,7 @@ import {
   getAgentsForStack,
   estimateTokensForAgents,
   AgentDefinition,
-} from './agents';
+} from './agents.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -1,6 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { knowledgePaths } from './tieredKnowledge';
+import { knowledgePaths } from './tieredKnowledge.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
