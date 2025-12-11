@@ -24,6 +24,9 @@ const partialFailuresPath = path.join(distributedSystemsDir, 'partial-failures.m
 const consensusCoordinationPath = path.join(distributedSystemsDir, 'consensus-coordination.md');
 const replicationStoragePath = path.join(distributedSystemsDir, 'replication-storage.md');
 const messagingQueuesPath = path.join(distributedSystemsDir, 'messaging-queues.md');
+const antithesisGlossaryPath = path.join(distributedSystemsDir, 'antithesis-glossary.md');
+const concurrencyBugsPath = path.join(distributedSystemsDir, 'concurrency-bugs.md');
+const errorHandlingPath = path.join(distributedSystemsDir, 'error-handling.md');
 
 // Database patterns
 const connectionPoolsPath = path.join(databaseDir, 'connection-pools.md');
@@ -52,6 +55,9 @@ Spawn TWO parallel agents in a SINGLE message:
 ### Agent 2: Reliability
 - Read \`${reliabilityPath}\` for detailed instructions and examples
 - **Extended Knowledge Base** - Read these files for deeper pattern matching:
+  - \`${antithesisGlossaryPath}\` - Formal anomaly codes (P0-P4, A5A, A5B), fault types
+  - \`${concurrencyBugsPath}\` - Memory visibility, check-then-act, fire-and-forget
+  - \`${errorHandlingPath}\` - Swallowed exceptions, resource leaks, shutdown bugs
   - \`${raceConditionsPath}\` - Race conditions, write skew, check-then-act
   - \`${isolationConsistencyPath}\` - Lost updates, write skew, read skew
   - \`${timeClocksPath}\` - Clock drift, timestamps, timeouts
@@ -81,6 +87,9 @@ export const reliabilityPrompt = fs.readFileSync(reliabilityPath, 'utf-8');
 // Export extended knowledge paths for agents to read
 export const extendedKnowledgePaths = {
   distributedSystems: {
+    antithesisGlossary: antithesisGlossaryPath,
+    concurrencyBugs: concurrencyBugsPath,
+    errorHandling: errorHandlingPath,
     raceConditions: raceConditionsPath,
     isolationConsistency: isolationConsistencyPath,
     timeClocks: timeClocksPath,
@@ -100,6 +109,9 @@ export const extendedKnowledgePaths = {
 
 // Export all paths as a flat array for easy iteration
 export const allExtendedKnowledgePaths = [
+  antithesisGlossaryPath,
+  concurrencyBugsPath,
+  errorHandlingPath,
   raceConditionsPath,
   isolationConsistencyPath,
   timeClocksPath,
