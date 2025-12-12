@@ -1,55 +1,63 @@
 # CodeGuard AI - Progress Log
 
-## Completed
-- [x] Created SPEC.md with full product specification
-- [x] Created CLAUDE_PROMPT.md for autonomous execution
-- [x] Initialized monorepo structure (pnpm-workspace.yaml, package.json)
-- [x] Created docker-compose.yml for PostgreSQL
-- [x] Created .env.example and .env
-- [x] **Backend package complete**:
-  - Drizzle ORM with PostgreSQL schema (repositories, analysis_runs, issues)
-  - Express routes: /api/repos, /api/repos/:id/files, /api/repos/:id/issues
-  - Services: github.ts (clone), analyzer.ts (Claude Code), parser.ts (JSON reports)
-  - Prompts: security.ts and reliability.ts with full audit prompts
-- [x] **Frontend package complete**:
-  - Vite + React 18 + TypeScript setup
-  - TanStack Query for API state management
-  - Monaco Editor with issue decorations
-  - UI components: Button, Badge, Card, Dialog
-  - Feature components: RepoCard, FileTree, CodeEditor, IssuePanel
-  - Pages: HomePage, RepoBrowserPage
+## Current Status
+Production deployment live at https://security-guard-ai.vercel.app
 
-## In Progress
-(none)
+## Completed Features
 
-## Blocked / Skipped
-(none)
+### Core
+- [x] Monorepo structure (pnpm workspaces)
+- [x] PostgreSQL database with Drizzle ORM
+- [x] Express backend with TypeScript
+- [x] React frontend with Vite + Tailwind CSS
+- [x] Monaco Editor for code viewing
 
-## Issues Encountered
-- TypeScript errors fixed in:
-  - `backend/src/routes/files.ts` - req.params type cast
-  - `backend/src/services/analyzer.ts` - import eq from drizzle-orm
-  - `frontend/src/components/ui/Button.tsx` - added size prop
-  - `frontend/src/components/FileTree.tsx` - fixed severity comparison logic
-  - `frontend/src/components/CodeEditor.tsx` - typed event parameter
+### Authentication
+- [x] Google OAuth integration
+- [x] Session-based authentication
+- [x] Workspace isolation per user
 
-## Completed
-- [x] pnpm install - dependencies installed
-- [x] pnpm build - both packages compile successfully
-- [x] Backend: Express server with Drizzle ORM, all routes implemented
-- [x] Frontend: Vite + React + Monaco Editor, all components ready
+### Repository Management
+- [x] Import public GitHub repos via URL
+- [x] Private repository support with access tokens
+- [x] Repository cloning and file indexing
+- [x] Re-check/re-analyze functionality
 
-## Ready for Testing
+### Analysis
+- [x] Claude AI-powered security analysis
+- [x] Claude AI-powered reliability analysis
+- [x] Specialized agents (Kafka, database, concurrency, distributed systems)
+- [x] Stack detection (Java, Node.js, Go, Rust, Python)
+- [x] Real-time progress tracking with agent status
+- [x] Analysis history with commit SHA tracking
 
-```bash
-# 1. Start PostgreSQL
-docker-compose up -d
+### UI/UX
+- [x] Issue dashboard with severity breakdown
+- [x] Interactive code browser with inline issue highlighting
+- [x] File tree with issue count badges
+- [x] Multi-category filtering (security, Kafka, database, etc.)
+- [x] Shareable analysis links
+- [x] History tab with analysis run details
 
-# 2. Push DB schema
-pnpm db:push
+### Infrastructure
+- [x] Vercel deployment for frontend
+- [x] GCP VM for backend
+- [x] API proxy via Vercel rewrites
+- [x] Documentation site (MkDocs)
 
-# 3. Start dev servers
-pnpm dev
+## Recent Fixes (Dec 2024)
+- [x] Fixed route detection for repos with "code" in name (e.g., codeguard-ai)
+- [x] Added error handling to history tab
+- [x] Fixed history tab rendering priority over needsResync state
 
-# 4. Open http://localhost:5173
-```
+## Known Issues
+(none currently)
+
+## Planned Features
+- [ ] CodeGuard CLI for terminal usage
+- [ ] GitHub App for automatic PR scanning
+- [ ] CI/CD integration (GitHub Actions, GitLab CI)
+- [ ] Custom rule configuration
+- [ ] Team collaboration features
+- [ ] SARIF export for IDE integration
+- [ ] Self-hosted deployment option

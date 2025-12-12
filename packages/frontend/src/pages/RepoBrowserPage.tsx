@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X, History, FolderSync, AlertCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X, History, FolderSync, AlertCircle, Filter } from 'lucide-react';
 import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo, useRepoStatus, useAnalysisHistory } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -12,9 +12,19 @@ import AnalysisProgress from '../components/AnalysisProgress';
 import AnalysisHistory from '../components/AnalysisHistory';
 import ProfileMenu from '../components/ProfileMenu';
 import ShareButton from '../components/ShareButton';
-import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
+import type { Issue, IssuesByFile as IssuesByFileMap, IssueType } from '../lib/api';
 
 type TabType = 'dashboard' | 'code' | 'history';
+
+// Issue type filter configuration
+const ISSUE_TYPE_CONFIG: { type: IssueType; label: string; color: string }[] = [
+  { type: 'security', label: 'Security', color: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' },
+  { type: 'resilience', label: 'Resilience', color: 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200' },
+  { type: 'concurrency', label: 'Concurrency', color: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200' },
+  { type: 'kafka', label: 'Kafka', color: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200' },
+  { type: 'database', label: 'Database', color: 'bg-cyan-100 text-cyan-700 border-cyan-200 hover:bg-cyan-200' },
+  { type: 'distributed', label: 'Distributed', color: 'bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200' },
+];
 
 // Parse line range from URL param like "L=10" or "L=10-15"
 function parseLineRange(param: string | null): { start: number; end: number } | null {
@@ -33,8 +43,9 @@ export default function RepoBrowserPage() {
   const [searchParams] = useSearchParams();
 
   // Derive activeTab and selectedFile from URL
-  const isCodeRoute = location.pathname.includes('/code');
-  const isHistoryRoute = location.pathname.includes('/history');
+  // Use regex to match /code at end or /code/ to avoid matching repo names like "codeguard-ai"
+  const isCodeRoute = /\/code(\/|$)/.test(location.pathname);
+  const isHistoryRoute = /\/history(\/|$)/.test(location.pathname);
   const activeTab: TabType = isCodeRoute ? 'code' : isHistoryRoute ? 'history' : 'dashboard';
   const selectedFile = isCodeRoute && filePath ? decodeURIComponent(filePath) : null;
 
@@ -42,6 +53,9 @@ export default function RepoBrowserPage() {
   const lineRange = parseLineRange(searchParams.get('L'));
 
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+
+  // Filter state for issue types (empty = show all)
+  const [activeTypeFilters, setActiveTypeFilters] = useState<Set<IssueType>>(new Set());
 
   // Token dialog state for private repos
   const [showTokenDialog, setShowTokenDialog] = useState(false);
@@ -79,7 +93,7 @@ export default function RepoBrowserPage() {
   const { data: files, isError: filesError, isLoading: filesLoading } = useFiles(repoId);
   const { data: issues } = useIssues(repoId);
   const { data: issuesByFile } = useIssuesByFile(repoId);
-  const { data: analysisHistory, isLoading: historyLoading } = useAnalysisHistory(repoId);
+  const { data: analysisHistory, isLoading: historyLoading, isError: historyError, error: historyErrorMsg } = useAnalysisHistory(repoId);
   const recheckMutation = useRecheckRepo();
 
   // Detect if repo needs re-sync (files failed to load but repo status is "completed")
@@ -92,6 +106,51 @@ export default function RepoBrowserPage() {
       acc[file.filePath] = file.issues;
       return acc;
     }, {} as IssuesByFileMap);
+  }, [issuesByFile]);
+
+  // Toggle a type filter on/off
+  const toggleTypeFilter = useCallback((type: IssueType) => {
+    setActiveTypeFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  }, []);
+
+  // Clear all filters
+  const clearTypeFilters = useCallback(() => {
+    setActiveTypeFilters(new Set());
+  }, []);
+
+  // Filtered issues map based on active type filters
+  const filteredIssuesByFileMap = useMemo<IssuesByFileMap>(() => {
+    if (activeTypeFilters.size === 0) return issuesByFileMap;
+
+    const filtered: IssuesByFileMap = {};
+    for (const [filePath, fileIssues] of Object.entries(issuesByFileMap)) {
+      const matchingIssues = fileIssues.filter(issue => activeTypeFilters.has(issue.type));
+      if (matchingIssues.length > 0) {
+        filtered[filePath] = matchingIssues;
+      }
+    }
+    return filtered;
+  }, [issuesByFileMap, activeTypeFilters]);
+
+  // Count issues by type for filter badges
+  const issueCountsByType = useMemo(() => {
+    const counts: Partial<Record<IssueType, number>> = {};
+    if (!issuesByFile) return counts;
+
+    for (const file of issuesByFile) {
+      for (const issue of file.issues) {
+        counts[issue.type] = (counts[issue.type] || 0) + 1;
+      }
+    }
+    return counts;
   }, [issuesByFile]);
 
   // Auto-select issue from URL line params on mount
@@ -294,6 +353,15 @@ export default function RepoBrowserPage() {
             agentProgress={null}
             errorMessage={repo.errorMessage}
           />
+        ) : activeTab === 'history' ? (
+          <AnalysisHistory
+            runs={analysisHistory?.runs || []}
+            owner={owner || ''}
+            name={name || ''}
+            isLoading={historyLoading}
+            isError={historyError}
+            errorMessage={historyErrorMsg instanceof Error ? historyErrorMsg.message : undefined}
+          />
         ) : needsResync ? (
           /* Repository files are missing - needs re-sync */
           <div className="flex-1 flex items-center justify-center bg-white">
@@ -339,13 +407,6 @@ export default function RepoBrowserPage() {
               <div className="text-gray-500">No issues found</div>
             </div>
           )
-        ) : activeTab === 'history' ? (
-          <AnalysisHistory
-            runs={analysisHistory?.runs || []}
-            owner={owner || ''}
-            name={name || ''}
-            isLoading={historyLoading}
-          />
         ) : (
           <>
             {/* File Tree Sidebar */}
@@ -365,11 +426,59 @@ export default function RepoBrowserPage() {
                       <PanelLeftClose className="w-4 h-4" />
                     </button>
                   </div>
+
+                  {/* Type Filter Bar */}
+                  {Object.keys(issueCountsByType).length > 0 && (
+                    <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Filter className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs font-medium text-gray-500">Filter by type</span>
+                        {activeTypeFilters.size > 0 && (
+                          <button
+                            onClick={clearTypeFilters}
+                            className="ml-auto text-xs text-gray-400 hover:text-gray-600"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {ISSUE_TYPE_CONFIG.filter(cfg => issueCountsByType[cfg.type]).map(({ type, label, color }) => {
+                          const count = issueCountsByType[type] || 0;
+                          const isActive = activeTypeFilters.has(type);
+                          return (
+                            <button
+                              key={type}
+                              onClick={() => toggleTypeFilter(type)}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border transition-all ${
+                                isActive
+                                  ? color
+                                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              {label}
+                              <span className={`${isActive ? 'opacity-70' : 'text-gray-400'}`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {activeTypeFilters.size > 0 && (
+                        <div className="mt-1.5 text-xs text-gray-400">
+                          Showing {Object.keys(filteredIssuesByFileMap).length} files with {
+                            Object.values(filteredIssuesByFileMap).reduce((sum, issues) => sum + issues.length, 0)
+                          } issues
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex-1 overflow-auto">
                     {files ? (
                       <FileTree
                         files={files}
-                        issuesByFile={issuesByFileMap}
+                        issuesByFile={filteredIssuesByFileMap}
                         selectedFile={selectedFile}
                         onSelectFile={setSelectedFile}
                       />
@@ -426,7 +535,7 @@ export default function RepoBrowserPage() {
                   <CodeEditor
                     repoId={repoId}
                     filePath={selectedFile}
-                    issues={issuesByFileMap[selectedFile] || []}
+                    issues={filteredIssuesByFileMap[selectedFile] || []}
                     onSelectIssue={handleSelectIssue}
                     selectedIssue={selectedIssue}
                     highlightLines={lineRange}

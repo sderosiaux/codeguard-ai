@@ -127,3 +127,91 @@ export async function requireWriteAccess(req: Request, res: Response, next: Next
   }
   next();
 }
+
+// Import for API key authentication
+import { apiTokens } from '../db/schema.js';
+import crypto from 'crypto';
+
+// Hash a token for comparison
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+// Require API key authentication (for CLI and API access)
+export async function requireApiKey(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'API key required. Use Authorization: Bearer <token>' });
+  }
+
+  const token = authHeader.substring(7);
+
+  if (!token.startsWith('cg_')) {
+    return res.status(401).json({ error: 'Invalid API key format' });
+  }
+
+  try {
+    const tokenHash = hashToken(token);
+
+    // Find the token in database
+    const [apiToken] = await db
+      .select({
+        id: apiTokens.id,
+        userId: apiTokens.userId,
+        workspaceId: apiTokens.workspaceId,
+        expiresAt: apiTokens.expiresAt,
+      })
+      .from(apiTokens)
+      .where(eq(apiTokens.tokenHash, tokenHash));
+
+    if (!apiToken) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+
+    // Check expiration
+    if (apiToken.expiresAt && apiToken.expiresAt < new Date()) {
+      return res.status(401).json({ error: 'API key expired' });
+    }
+
+    // Get user info
+    const [user] = await db.select().from(users).where(eq(users.id, apiToken.userId));
+
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Update last used timestamp (fire and forget)
+    db.update(apiTokens)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(apiTokens.id, apiToken.id))
+      .catch(() => {}); // Ignore errors
+
+    // Attach user and workspace to request
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+    };
+    req.workspaceId = apiToken.workspaceId;
+
+    // Get workspace role
+    const [membership] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, apiToken.workspaceId),
+          eq(workspaceMembers.userId, user.id)
+        )
+      );
+
+    req.workspaceRole = membership?.role || 'member';
+
+    next();
+  } catch (error) {
+    console.error('API key auth error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}

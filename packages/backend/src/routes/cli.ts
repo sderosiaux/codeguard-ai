@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { randomUUID } from 'crypto';
+import { requireApiKey } from '../middleware/auth.js';
+import { db } from '../db/index.js';
+import { repositories, issues as issuesTable, analysisRuns, workspaces, workspaceMembers } from '../db/schema.js';
+import { eq, and } from 'drizzle-orm';
 
 const router = Router();
 
@@ -39,6 +43,9 @@ interface ScanJob {
   grade?: string;
   score?: number;
   error?: string;
+  workspaceId?: string;
+  userId?: string;
+  repoName?: string;
 }
 
 // In-memory store for scan jobs (use Redis/DB in production)
@@ -193,14 +200,49 @@ async function runAnalysis(scanId: string, files: FileContent[]): Promise<void> 
   }
 }
 
-// POST /api/cli/scan - Start a new scan (returns immediately with scan ID)
-router.post('/scan', async (req, res) => {
+// GET /api/cli/me - Get authenticated user info
+router.get('/me', requireApiKey, async (req, res) => {
+  res.json({
+    user: req.user,
+    workspaceId: req.workspaceId,
+  });
+});
+
+// GET /api/cli/workspaces - List user's workspaces (for CLI to select default)
+router.get('/workspaces', requireApiKey, async (req, res) => {
   try {
-    const { files } = req.body as { files: FileContent[] };
+    const memberships = await db
+      .select({
+        id: workspaces.id,
+        name: workspaces.name,
+        slug: workspaces.slug,
+        role: workspaceMembers.role,
+      })
+      .from(workspaceMembers)
+      .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
+      .where(eq(workspaceMembers.userId, req.user!.id));
+
+    res.json({
+      workspaces: memberships,
+      currentWorkspaceId: req.workspaceId, // From API key
+    });
+  } catch (error) {
+    console.error('List workspaces error:', error);
+    res.status(500).json({ error: 'Failed to list workspaces' });
+  }
+});
+
+// POST /api/cli/scan - Start a new scan (returns immediately with scan ID)
+router.post('/scan', requireApiKey, async (req, res) => {
+  try {
+    const { files, repoName } = req.body as { files: FileContent[]; repoName?: string };
 
     if (!files || !Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: 'No files provided' });
     }
+
+    const workspaceId = req.workspaceId!;
+    const userId = req.user!.id;
 
     const scanId = randomUUID();
     const job: ScanJob = {
@@ -208,11 +250,14 @@ router.post('/scan', async (req, res) => {
       status: 'pending',
       filesCount: files.length,
       createdAt: new Date(),
+      workspaceId,
+      userId,
+      repoName: repoName || 'cli-scan',
     };
 
     scanJobs.set(scanId, job);
 
-    console.log(`Started scan ${scanId}: ${files.length} files`);
+    console.log(`Started scan ${scanId}: ${files.length} files for workspace ${workspaceId}`);
 
     // Start analysis in background (don't await)
     runAnalysis(scanId, files);
@@ -222,6 +267,7 @@ router.post('/scan', async (req, res) => {
       scanId,
       status: 'pending',
       filesCount: files.length,
+      workspaceId,
       message: 'Scan started. Poll GET /api/cli/scan/:scanId for results.',
     });
   } catch (error) {
@@ -234,7 +280,7 @@ router.post('/scan', async (req, res) => {
 });
 
 // GET /api/cli/scan/:scanId - Get scan status and results
-router.get('/scan/:scanId', (req, res) => {
+router.get('/scan/:scanId', requireApiKey, (req, res) => {
   const { scanId } = req.params;
 
   const job = scanJobs.get(scanId);

@@ -69,8 +69,32 @@ func runScan(cmd *cobra.Command, args []string) error {
 		cfg = &config.Config{APIURL: config.DefaultAPIURL}
 	}
 
+	// Check authentication
+	if !cfg.IsAuthenticated() {
+		ui.Error("Authentication required")
+		fmt.Println()
+		ui.Info("Run 'codeguard auth login' to authenticate with your API key")
+		ui.Info("Get an API key from: https://security-guard-ai.vercel.app/app/settings")
+		return nil
+	}
+
 	fmt.Println(ui.Logo())
+
+	// Verify API key and get workspace info
+	client := api.NewClient(cfg.APIURL, cfg.APIKey)
+	fmt.Printf("%s⠋%s Verifying authentication...\r", ui.Cyan, ui.Reset)
+	meResp, err := client.GetMe()
+	if err != nil {
+		fmt.Print(strings.Repeat(" ", 40) + "\r")
+		ui.Error("Authentication failed: " + err.Error())
+		fmt.Println()
+		ui.Info("Run 'codeguard auth login' to re-authenticate")
+		return nil
+	}
+	fmt.Print(strings.Repeat(" ", 40) + "\r")
+
 	ui.Info(fmt.Sprintf("Scanning %s%s%s", ui.Bold, absPath, ui.Reset))
+	fmt.Printf("  %sUser: %s%s\n", ui.Dim, meResp.User.Email, ui.Reset)
 	fmt.Println()
 
 	// Start scanning files
@@ -94,8 +118,8 @@ func runScan(cmd *cobra.Command, args []string) error {
 		ui.Warning(fmt.Sprintf("Skipped %d files (too large)", result.SkippedFiles))
 	}
 
-	// Send to API
-	client := api.NewClient(cfg.APIURL, cfg.APIKey)
+	// Use the already-created client from authentication check
+	_ = meResp // meResp was used for displaying user info above
 
 	// Status callback for animated progress
 	var frameIdx int

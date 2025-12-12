@@ -229,3 +229,109 @@ func (c *Client) HealthCheck() error {
 
 	return nil
 }
+
+// User represents a user
+type User struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatarUrl"`
+}
+
+// Workspace represents a workspace
+type Workspace struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+	Role string `json:"role"`
+}
+
+// MeResponse is the response from /cli/me
+type MeResponse struct {
+	User        *User  `json:"user"`
+	WorkspaceID string `json:"workspaceId"`
+}
+
+// WorkspacesResponse is the response from /cli/workspaces
+type WorkspacesResponse struct {
+	Workspaces         []Workspace `json:"workspaces"`
+	CurrentWorkspaceID string      `json:"currentWorkspaceId"`
+}
+
+// GetMe returns the authenticated user and workspace from API key
+func (c *Client) GetMe() (*MeResponse, error) {
+	req, err := http.NewRequest("GET", c.baseURL+"/cli/me", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.apiKey == "" {
+		return nil, fmt.Errorf("API key required")
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("invalid API key")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var meResp MeResponse
+	if err := json.Unmarshal(respBody, &meResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &meResp, nil
+}
+
+// GetWorkspaces returns the user's workspaces
+func (c *Client) GetWorkspaces() (*WorkspacesResponse, error) {
+	req, err := http.NewRequest("GET", c.baseURL+"/cli/workspaces", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.apiKey == "" {
+		return nil, fmt.Errorf("API key required")
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("invalid API key")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var workspacesResp WorkspacesResponse
+	if err := json.Unmarshal(respBody, &workspacesResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &workspacesResp, nil
+}

@@ -180,29 +180,21 @@ codeguard-ai/
 
 ## Roadmap
 
+### Completed
+- [x] **Private repository support** — Add GitHub access tokens for private repos
+- [x] **Analysis history** — Track all analysis runs with commit SHA, duration, and trigger info
+- [x] **Shareable links** — Generate share links for analysis results
+- [x] **Multi-category filtering** — Filter issues by type (security, Kafka, database, etc.)
+- [x] **Google OAuth** — Secure authentication with Google accounts
+- [x] **Real-time progress** — Live feedback during repository analysis
+
+### Planned
 - [ ] **CodeGuard CLI** — Run analysis from terminal (`npx codeguard scan .`)
-  ```bash
-  $ codeguard scan ./my-project
-
-  ✓ Scanning 142 files...
-  ✓ Analysis complete
-
-  CRITICAL  2 issues
-  HIGH      5 issues
-  MEDIUM    12 issues
-
-  src/auth/login.ts:42     CRITICAL  SQL injection vulnerability
-  src/api/users.ts:128     CRITICAL  Hardcoded API key detected
-  src/utils/crypto.ts:15   HIGH      Weak encryption algorithm
-  ...
-  ```
 - [ ] GitHub App integration for automatic PR scanning
 - [ ] CI/CD pipeline integration (GitHub Actions, GitLab CI)
 - [ ] Custom rule configuration
 - [ ] Team collaboration features
-- [ ] Historical trend analysis
 - [ ] SARIF export for IDE integration
-- [ ] Private repository support
 - [ ] Self-hosted deployment option
 
 ---

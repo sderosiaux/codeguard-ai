@@ -1,4 +1,4 @@
-import { Clock, GitCommit, Play, RefreshCw, Zap, CheckCircle2, XCircle, ExternalLink, User } from 'lucide-react';
+import { Clock, GitCommit, Play, RefreshCw, Zap, CheckCircle2, XCircle, ExternalLink, User, AlertTriangle } from 'lucide-react';
 import type { AnalysisRun, AnalysisTrigger } from '../lib/api';
 
 interface AnalysisHistoryProps {
@@ -6,6 +6,8 @@ interface AnalysisHistoryProps {
   owner: string;
   name: string;
   isLoading?: boolean;
+  isError?: boolean;
+  errorMessage?: string;
 }
 
 function formatDuration(seconds: number | null): string {
@@ -93,11 +95,23 @@ function IssueBadges({ counts }: { counts: AnalysisRun['issueCounts'] }) {
   );
 }
 
-export default function AnalysisHistory({ runs, owner, name, isLoading }: AnalysisHistoryProps) {
+export default function AnalysisHistory({ runs, owner, name, isLoading, isError, errorMessage }: AnalysisHistoryProps) {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+          <p className="text-gray-700 font-medium">Failed to load history</p>
+          <p className="text-sm text-gray-500 mt-1">{errorMessage || 'An error occurred while fetching analysis history'}</p>
+        </div>
       </div>
     );
   }

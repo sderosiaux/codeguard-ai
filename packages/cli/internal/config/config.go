@@ -8,7 +8,7 @@ import (
 
 const (
 	configFileName = ".codeguard.json"
-	DefaultAPIURL  = "https://codeguard-ai.vercel.app/api"
+	DefaultAPIURL  = "https://security-guard-ai.vercel.app/api"
 )
 
 // Config holds the CLI configuration

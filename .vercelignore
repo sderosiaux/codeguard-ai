@@ -1,0 +1,22 @@
+# Ignore backend package
+packages/backend
+
+# Ignore repos clones
+packages/backend/repos
+
+# Ignore node_modules (Vercel installs fresh)
+node_modules
+packages/*/node_modules
+
+# Ignore docs source (only need built site)
+docs/src
+docs/node_modules
+
+# Ignore test files
+**/*.test.*
+**/*.spec.*
+__tests__
+
+# Ignore dev files
+.env.local
+*.log

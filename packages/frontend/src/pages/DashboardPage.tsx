@@ -9,26 +9,13 @@ import {
   Shield,
   Plus,
   Github,
-  Scan,
-  Lock,
   AlertTriangle,
-  CheckCircle2,
-  ArrowRight,
   BookOpen,
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { data: repos, isLoading, error, refetch } = useRepos();
-  const [scanProgress, setScanProgress] = useState(0);
-
-  // Animated scan progress for hero
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setScanProgress((prev) => (prev >= 100 ? 0 : prev + 1));
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
 
   // Poll for status updates
   useEffect(() => {
@@ -158,166 +145,24 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Empty State - Onboarding Hero */}
+        {/* Empty State - Minimal & Action-Focused */}
         {!isLoading && !error && repos && repos.length === 0 && (
-          <div className="max-w-6xl mx-auto px-6 lg:px-8 py-16">
-            {/* Hero Section */}
-            <div className="text-center mb-16">
-              {/* Animated Shield */}
-              <div className="relative inline-flex mb-8">
-                <div className="relative">
-                  {/* Outer ring */}
-                  <div className="absolute inset-0 rounded-full border-2 border-emerald-300/50 animate-ping" style={{ animationDuration: '3s' }} />
-                  {/* Shield container */}
-                  <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-200 flex items-center justify-center shadow-xl shadow-emerald-500/10">
-                    <Shield className="w-16 h-16 text-emerald-500" />
-                    {/* Scan line */}
-                    <div
-                      className="absolute inset-0 rounded-full overflow-hidden"
-                      style={{
-                        background: `linear-gradient(180deg, transparent ${scanProgress}%, rgba(16, 185, 129, 0.15) ${scanProgress}%, rgba(16, 185, 129, 0.15) ${scanProgress + 2}%, transparent ${scanProgress + 2}%)`,
-                      }}
-                    />
-                  </div>
-                  {/* Floating icons */}
-                  <div className="absolute -top-2 -right-2 w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-lg flex items-center justify-center animate-bounce" style={{ animationDuration: '2s' }}>
-                    <Lock className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <div className="absolute -bottom-2 -left-2 w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-lg flex items-center justify-center animate-bounce" style={{ animationDuration: '2.5s' }}>
-                    <Scan className="w-5 h-5 text-emerald-500" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Headline */}
-              <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
-                <span className="bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 bg-clip-text text-transparent">
-                  AI-Powered
-                </span>
-                <br />
-                <span className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 bg-clip-text text-transparent">
-                  Code Security
-                </span>
-              </h1>
-
-              <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-10">
-                Deep vulnerability scanning powered by AI. Find security flaws,
-                reliability issues, and get actionable fixes in minutes.
-              </p>
-
-              {/* CTA */}
-              <Button
-                onClick={() => setIsAddDialogOpen(true)}
-                size="lg"
-                className="gap-3 text-lg px-8 py-4 shadow-xl shadow-brand-500/25 hover:shadow-brand-500/40 transition-all duration-300 hover:scale-105"
-              >
-                <Github className="w-6 h-6" />
-                Connect Repository
-                <ArrowRight className="w-5 h-5" />
-              </Button>
+          <div className="flex flex-col items-center justify-center min-h-[60vh] px-6">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
+              <Shield className="w-8 h-8 text-emerald-500" />
             </div>
-
-            {/* Onboarding Steps */}
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-8">
-                <span className="text-sm font-medium text-brand-600 uppercase tracking-wider">How it works</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  {
-                    step: '01',
-                    icon: Github,
-                    title: 'Connect',
-                    description: 'Paste your GitHub repository URL',
-                    gradient: 'from-blue-500 to-cyan-500',
-                    bg: 'bg-blue-50',
-                    iconColor: 'text-blue-500',
-                  },
-                  {
-                    step: '02',
-                    icon: Scan,
-                    title: 'Analyze',
-                    description: 'AI scans every file for vulnerabilities',
-                    gradient: 'from-emerald-500 to-teal-500',
-                    bg: 'bg-emerald-50',
-                    iconColor: 'text-emerald-500',
-                  },
-                  {
-                    step: '03',
-                    icon: CheckCircle2,
-                    title: 'Fix',
-                    description: 'Get prioritized issues with remediation',
-                    gradient: 'from-emerald-500 to-teal-500',
-                    bg: 'bg-emerald-50',
-                    iconColor: 'text-emerald-500',
-                  },
-                ].map((item, index) => (
-                  <div key={item.step} className="group relative">
-                    {/* Connection line */}
-                    {index < 2 && (
-                      <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-px bg-gradient-to-r from-gray-200 to-transparent" />
-                    )}
-
-                    <div className="relative p-6 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:transform hover:scale-105 hover:-translate-y-1">
-                      {/* Step number */}
-                      <div className="absolute -top-3 -left-3 w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center">
-                        <span className="text-xs font-bold text-gray-400">{item.step}</span>
-                      </div>
-
-                      {/* Icon */}
-                      <div className={`w-14 h-14 rounded-xl ${item.bg} flex items-center justify-center mb-4`}>
-                        <item.icon className={`w-7 h-7 ${item.iconColor}`} />
-                      </div>
-
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
-                      <p className="text-sm text-gray-500">{item.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Terminal Preview */}
-            <div className="mt-16 max-w-3xl mx-auto">
-              <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-2xl shadow-gray-200/50 bg-white">
-                {/* Terminal header */}
-                <div className="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                    <div className="w-3 h-3 rounded-full bg-green-400" />
-                  </div>
-                  <div className="flex-1 text-center">
-                    <span className="text-xs text-gray-500 font-mono">codeguard-ai — security-scan</span>
-                  </div>
-                </div>
-
-                {/* Terminal content */}
-                <div className="bg-gray-900 p-5 font-mono text-sm">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-brand-400">$</span>
-                      <span className="text-gray-300">codeguard scan github.com/your-repo</span>
-                      <span className="text-brand-400 animate-pulse">▋</span>
-                    </div>
-                    <div className="text-gray-500">
-                      <span className="text-brand-400">→</span> Cloning repository...
-                    </div>
-                    <div className="text-gray-500">
-                      <span className="text-brand-400">→</span> Running AI security analysis...
-                    </div>
-                    <div className="text-gray-400">
-                      <span className="text-emerald-400">✓</span> Found <span className="text-red-400">3 critical</span>, <span className="text-orange-400">5 high</span>, <span className="text-yellow-400">12 medium</span> issues
-                    </div>
-                    <div className="pt-2 border-t border-gray-700 mt-2">
-                      <span className="text-gray-500"># View detailed report at</span>
-                      <span className="text-brand-400"> localhost:5173/repos/1</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">No repositories yet</h2>
+            <p className="text-gray-500 text-center max-w-md mb-8">
+              Connect a GitHub repository to start scanning for security vulnerabilities, reliability issues, and code quality problems.
+            </p>
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              size="lg"
+              className="gap-2"
+            >
+              <Github className="w-5 h-5" />
+              Connect Repository
+            </Button>
           </div>
         )}
 

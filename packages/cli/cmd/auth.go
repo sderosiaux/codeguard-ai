@@ -69,11 +69,19 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Validate API key
+	// Validate API key format
+	if !strings.HasPrefix(apiKey, "cg_") {
+		ui.Error("Invalid API key format. API keys start with 'cg_'")
+		return nil
+	}
+
+	// Validate API key with server
 	fmt.Printf("%s⠋%s Validating credentials...\r", ui.Cyan, ui.Reset)
 	client := api.NewClient(cfg.APIURL, apiKey)
-	if err := client.HealthCheck(); err != nil {
-		ui.Error("Could not connect to API: " + err.Error())
+	meResp, err := client.GetMe()
+	if err != nil {
+		fmt.Print(strings.Repeat(" ", 40) + "\r")
+		ui.Error("Authentication failed: " + err.Error())
 		return nil
 	}
 
@@ -84,7 +92,7 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Print(strings.Repeat(" ", 40) + "\r")
-	ui.Success("Successfully authenticated!")
+	ui.Success(fmt.Sprintf("Authenticated as %s (%s)", meResp.User.Name, meResp.User.Email))
 	fmt.Println()
 	ui.Info("You can now run: codeguard scan")
 	return nil
@@ -125,11 +133,47 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// Verify API key is still valid
+	fmt.Printf("%s⠋%s Checking authentication...\r", ui.Cyan, ui.Reset)
+	client := api.NewClient(cfg.APIURL, cfg.APIKey)
+	meResp, err := client.GetMe()
+	if err != nil {
+		fmt.Print(strings.Repeat(" ", 40) + "\r")
+		ui.Error("API key is no longer valid: " + err.Error())
+		fmt.Println()
+		ui.Info("Run 'codeguard auth login' to re-authenticate")
+		return nil
+	}
+
+	// Get workspaces
+	workspacesResp, err := client.GetWorkspaces()
+	if err != nil {
+		fmt.Print(strings.Repeat(" ", 40) + "\r")
+		ui.Warning("Could not fetch workspaces: " + err.Error())
+	}
+
+	fmt.Print(strings.Repeat(" ", 40) + "\r")
 	ui.Success("Authenticated")
-	fmt.Printf("  API URL: %s%s%s\n", ui.Dim, cfg.APIURL, ui.Reset)
+	fmt.Printf("  User:      %s%s (%s)%s\n", ui.Dim, meResp.User.Name, meResp.User.Email, ui.Reset)
+	fmt.Printf("  API URL:   %s%s%s\n", ui.Dim, cfg.APIURL, ui.Reset)
 
 	// Mask API key
-	masked := cfg.APIKey[:4] + "..." + cfg.APIKey[len(cfg.APIKey)-4:]
-	fmt.Printf("  API Key: %s%s%s\n", ui.Dim, masked, ui.Reset)
+	masked := cfg.APIKey[:8] + "..." + cfg.APIKey[len(cfg.APIKey)-4:]
+	fmt.Printf("  API Key:   %s%s%s\n", ui.Dim, masked, ui.Reset)
+
+	// Show current workspace
+	if workspacesResp != nil {
+		for _, ws := range workspacesResp.Workspaces {
+			if ws.ID == meResp.WorkspaceID {
+				fmt.Printf("  Workspace: %s%s (%s)%s\n", ui.Dim, ws.Name, ws.Role, ui.Reset)
+				break
+			}
+		}
+
+		if len(workspacesResp.Workspaces) > 1 {
+			fmt.Printf("\n  %sYou have access to %d workspaces%s\n", ui.Dim, len(workspacesResp.Workspaces), ui.Reset)
+		}
+	}
+
 	return nil
 }
