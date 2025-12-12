@@ -116,18 +116,18 @@ export function TokensTab() {
           </div>
         </div>
 
-        {/* MCP Info Banner */}
+        {/* Info Banner */}
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
           <div className="flex items-start gap-3">
             <Terminal className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
             <div className="text-sm">
               <p className="text-gray-700">
-                API tokens authenticate requests to the <strong>MCP (Model Context Protocol)</strong> server.
-                Use them to integrate CodeGuard AI with Claude, Cursor, or other MCP-compatible tools.
+                API tokens authenticate requests to the <strong>CLI</strong> and <strong>GitHub Actions</strong>.
+                Use them to scan code from your terminal or CI/CD pipelines.
               </p>
-              <a href="/docs/integrations/mcp/" className="text-emerald-600 hover:text-emerald-700 font-medium mt-1 inline-block">
-                View MCP documentation →
-              </a>
+              <p className="text-gray-500 mt-2 font-mono text-xs">
+                codeguard auth login → paste your token
+              </p>
             </div>
           </div>
         </div>
