@@ -178,6 +178,23 @@ codeguard-ai/
 
 ---
 
+## CLI
+
+Scan code directly from your terminal:
+
+```bash
+# Install
+cd packages/cli && go build -o codeguard .
+
+# Authenticate (get API key from Settings page)
+./codeguard auth login
+
+# Scan a directory
+./codeguard scan ./my-project
+```
+
+---
+
 ## Roadmap
 
 ### Completed
@@ -187,9 +204,9 @@ codeguard-ai/
 - [x] **Multi-category filtering** — Filter issues by type (security, Kafka, database, etc.)
 - [x] **Google OAuth** — Secure authentication with Google accounts
 - [x] **Real-time progress** — Live feedback during repository analysis
+- [x] **CodeGuard CLI** — Scan code from terminal with API key authentication
 
 ### Planned
-- [ ] **CodeGuard CLI** — Run analysis from terminal (`npx codeguard scan .`)
 - [ ] GitHub App integration for automatic PR scanning
 - [ ] CI/CD pipeline integration (GitHub Actions, GitLab CI)
 - [ ] Custom rule configuration

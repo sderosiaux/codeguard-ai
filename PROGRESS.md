@@ -45,16 +45,22 @@ Production deployment live at https://security-guard-ai.vercel.app
 - [x] API proxy via Vercel rewrites
 - [x] Documentation site (MkDocs)
 
+### CLI
+- [x] Go-based CLI (`packages/cli`)
+- [x] API key authentication
+- [x] Workspace-scoped scans
+- [x] Pretty and JSON output formats
+
 ## Recent Fixes (Dec 2024)
 - [x] Fixed route detection for repos with "code" in name (e.g., codeguard-ai)
 - [x] Added error handling to history tab
 - [x] Fixed history tab rendering priority over needsResync state
+- [x] Added authenticated CLI with API key support
 
 ## Known Issues
 (none currently)
 
 ## Planned Features
-- [ ] CodeGuard CLI for terminal usage
 - [ ] GitHub App for automatic PR scanning
 - [ ] CI/CD integration (GitHub Actions, GitLab CI)
 - [ ] Custom rule configuration
